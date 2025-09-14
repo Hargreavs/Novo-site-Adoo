@@ -1,0 +1,15 @@
+/* Hero Lines Animation Styles */
+.hero-line {
+  vector-effect: non-scaling-stroke;
+  transition: all .3s ease;
+  will-change: stroke-dashoffset, opacity, filter, stroke-width;
+}
+
+/* Sem animação contínua por padrão; animamos somente no hover/on-demand */
+.hero-line { opacity: 0.6; }
+
+/* Efeito de varredura de brilho no hover */
+.hero-line.is-hot {
+  opacity: 1;
+  filter: url(#heroGlow);
+}

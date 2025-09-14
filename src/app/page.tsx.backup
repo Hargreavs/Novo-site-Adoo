@@ -1,0 +1,231 @@
+import Link from 'next/link';
+import Image from 'next/image';
+import { 
+  DocumentTextIcon, 
+  ShieldCheckIcon, 
+  ClockIcon, 
+  CloudIcon,
+  StarIcon
+} from '@heroicons/react/24/outline';
+import TransparentHeader from '@/components/TransparentHeader';
+import RevealWrapper from '@/components/RevealWrapper';
+import Personas from '@/components/Personas';
+import TestimonialsCarousel from '@/components/TestimonialsCarousel';
+
+export default function Home() {
+
+  const features = [
+    {
+      icon: DocumentTextIcon,
+      title: 'Radar IA',
+      description: 'Nossa inteligência artificial lê os editais e já entrega o resumo mastigado, com os principais pontos que você precisa saber.'
+    },
+    {
+      icon: ShieldCheckIcon,
+      title: 'Alertas personalizados',
+      description: 'Cadastre palavras-chave (concursos, licitações, nomes, CNPJs) e seja avisado na hora em que forem publicadas nos diários oficiais de seu interesse.'
+    },
+    {
+      icon: ClockIcon,
+      title: 'Central unificada',
+      description: 'Pesquise em diferentes diários oficiais em um só lugar, sem precisar abrir dezenas de sites.'
+    },
+    {
+      icon: CloudIcon,
+      title: 'Notificação em tempo real',
+      description: 'Receba alertas por e-mail, SMS e push assim que sua palavra-chave for publicada.'
+    }
+  ];
+
+
+  return (
+    <div className="bg-transparent">
+      <TransparentHeader currentPage="" />
+
+      {/* Hero Section */}
+      <section className="relative isolate overflow-hidden min-h-[calc(100svh-4rem)] flex items-center justify-center">
+        {/* Gradiente base (fallback) */}
+        <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
+          <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+        </div>
+        
+        {/* Imagem de fundo - Fallback para gradiente se imagem não existir */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+          <Image
+            src="/images/Imagem Diário Oficial.png"
+            alt="Jornais do Diário Oficial"
+            fill
+            priority
+            fetchPriority="high"
+            quality={85}
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+            className="object-cover object-center md:object-[50%_35%] w-full h-full"
+            style={{ 
+              filter: 'brightness(0.7) contrast(1.05) saturate(0.8) blur(0.5px)',
+              willChange: 'transform'
+            }}
+          />
+        </div>
+
+        {/* Overlay 1 - Escuro para legibilidade */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/85 via-[#0a0a0f]/78 to-[#1c1a4a]/82" />
+
+        {/* Overlay 2 - Vignette para focar no título */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(120% 70% at 50% 30%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.65) 100%)',
+          }}
+        />
+
+        {/* Degradê de transição para próxima seção */}
+        <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-[#0a0a0f] to-transparent pointer-events-none" />
+
+        {/* Conteúdo do Hero */}
+        <div className="relative px-6 pt-16 lg:px-8 w-full">
+          <div className="mx-auto max-w-4xl min-h-[68vh] md:min-h-[76vh] flex items-center">
+            <div className="w-full text-center">
+              <RevealWrapper delay={100}>
+                <div className="hidden sm:mb-8 sm:flex sm:justify-center">
+                  <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-gray-300 ring-1 ring-white/20 hover:ring-white/30 backdrop-blur-[1px]">
+                    Nova versão disponível{' '}
+                  </div>
+                </div>
+              </RevealWrapper>
+              <RevealWrapper delay={200}>
+                <div className="text-center max-w-3xl mx-auto">
+                  <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+                    A maior plataforma de <span className="text-blue-400">Diários Oficiais</span> do Brasil
+                  </h1>
+                  <p className="mt-6 text-lg leading-8 text-gray-300">
+                    A nova versão do Adoo agora conta com o <strong>Radar IA</strong>, nossa inteligência artificial que não só encontra as publicações relevantes, mas já entrega a informação resumida e analisada para você ganhar tempo e não perder oportunidades.
+                  </p>
+                  <div className="mt-10 flex items-center justify-center gap-x-6">
+                    <Link
+                      href="/precos"
+                      className="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    >
+                      Começar agora
+                    </Link>
+                    <a href="#features" className="text-sm font-semibold leading-6 text-white hover:text-blue-400">
+                      Conhecer o Radar IA <span aria-hidden="true"></span>
+                    </a>
+                  </div>
+                </div>
+              </RevealWrapper>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Personas Section */}
+      <Personas />
+
+      {/* Features Section */}
+      <div id="features" className="py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <RevealWrapper delay={100}>
+            <div className="mx-auto max-w-2xl lg:text-center">
+              <h2 className="text-base font-semibold leading-7 text-blue-400">Benefícios</h2>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Tudo o que você precisa para acompanhar os Diários Oficiais com praticidade
+              </p>
+              <p className="mt-6 text-lg leading-8 text-gray-300">
+                Combinamos monitoramento automático e inteligência artificial para transformar o Diário Oficial em informações claras e úteis.
+              </p>
+            </div>
+          </RevealWrapper>
+          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
+            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-2">
+              {features.map((feature, index) => (
+                <RevealWrapper key={feature.title} delay={200 + (index * 100)}>
+                  <div className="flex flex-col">
+                    <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
+                      <feature.icon className="h-5 w-5 flex-none text-blue-400" aria-hidden="true" />
+                      {feature.title}
+                    </dt>
+                    <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-300">
+                      <p className="flex-auto">{feature.description}</p>
+                    </dd>
+                  </div>
+                </RevealWrapper>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials Section */}
+      <div id="testimonials" className="py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <RevealWrapper delay={100}>
+            <div className="mx-auto max-w-xl text-center mb-16">
+              <h2 className="text-lg font-semibold leading-8 tracking-tight text-blue-400">Depoimentos</h2>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                O que nossos clientes dizem
+              </p>
+            </div>
+          </RevealWrapper>
+          <RevealWrapper delay={200}>
+            <TestimonialsCarousel />
+          </RevealWrapper>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="bg-blue-600/20 backdrop-blur-sm ring-1 ring-blue-400/30">
+        <div className="px-6 py-24 sm:px-6 sm:py-32 lg:px-8">
+          <RevealWrapper delay={100}>
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Pronto para usar inteligência artificial no monitoramento dos diários oficiais?
+              </h2>
+              <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-300">
+                Experimente a nossa mais nova e poderosa ferramenta Radar IA e receba editais e publicações já resumidas para você focar no que realmente importa.
+              </p>
+              <div className="mt-10 flex items-center justify-center gap-x-6">
+                <a
+                  href="#contact"
+                  className="animated-gradient rounded-md px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all duration-300 hover:shadow-lg hover:scale-105"
+                >
+                  Ativar Radar IA grátis
+                </a>
+                <Link href="/precos" className="text-sm font-semibold leading-6 text-white hover:text-blue-300">
+                  Ver planos <span aria-hidden="true"></span>
+                </Link>
+              </div>
+            </div>
+          </RevealWrapper>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer id="contact" className="bg-transparent">
+        <div className="mx-auto max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8">
+          <div className="flex justify-center space-x-6 md:order-2">
+          <a href="#" className="text-gray-400 hover:text-gray-300" aria-label="Facebook">
+  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    {/* Facebook sem círculo de fundo */}
+    <path d="M22 12.06C22 6.48 17.52 2 11.94 2S1.88 6.48 1.88 12.06c0 5.03 3.67 9.2 8.47 9.94v-7.03H7.9v-3h2.45V9.8c0-2.44 1.45-3.8 3.67-3.8 1.06 0 2.17.18 2.17.18v2.39h-1.23c-1.21 0-1.59.75-1.59 1.52v1.95h2.71l-.43 3h-2.28v7.04c4.79-.74 8.43-4.91 8.43-9.94z"/>
+  </svg>
+</a>
+<a href="#" className="text-gray-400 hover:text-gray-300" aria-label="Instagram">
+  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    {/* Instagram sem círculo de fundo */}
+    <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.75a5.25 5.25 0 1 1 0 10.5 5.25 5.25 0 0 1 0-10.5Zm0 2a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5Zm5.75-2.25a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Z"/>
+  </svg>
+</a>
+          </div>
+          <div className="mt-8 md:order-1 md:mt-0">
+            <p className="text-center text-xs leading-5 text-gray-400">
+              2020 Adoo. Todos os direitos reservados.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
