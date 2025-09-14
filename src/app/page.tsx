@@ -15,18 +15,14 @@ import RevealWrapper from '@/components/RevealWrapper';
 import Personas from '@/components/Personas';
 import TestimonialsCarousel from '@/components/TestimonialsCarousel';
 import BenefitsSection from '@/components/BenefitsSection';
+import HeroSection from '@/components/HeroSection';
 
 export default function Home() {
   const heroRef = useRef<HTMLElement>(null);
   const parallaxImageRef = useRef<HTMLDivElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
   const [showScrollCue, setShowScrollCue] = useState(true);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [hoveredLine, setHoveredLine] = useState<string | null>(null);
-  const [glowIntensity, setGlowIntensity] = useState(0);
-  const [isHovering, setIsHovering] = useState(false);
   const [selectedContext, setSelectedContext] = useState<string>('concurso');
-  const animatedLinesRef = useRef<HTMLDivElement>(null);
   const [hoveredPricingLine, setHoveredPricingLine] = useState<string | null>(null);
   const [pricingGlowIntensity, setPricingGlowIntensity] = useState(0);
   const [isHoveringPricing, setIsHoveringPricing] = useState(false);
@@ -36,149 +32,6 @@ export default function Home() {
   const animationFrameRef = useRef<number | null>(null);
 
 
-  // Mouse glow effect - Efeito de brilho que percorre as linhas
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (animatedLinesRef.current) {
-        const rect = animatedLinesRef.current.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        setMousePosition({ x, y });
-
-        // Detecção mais precisa baseada na proximidade das linhas
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        const viewportWidth = rect.width;
-        const viewportHeight = rect.height;
-        const scaleX = viewportWidth / 1920;
-        const scaleY = viewportHeight / 1080;
-        
-        let detectedLine = null;
-        let intensity = 0;
-
-        // Pontos dos contornos (em coordenadas do viewBox 1920x1080)
-        const contourLines = [
-          {
-            id: 'contour-main',
-            points: [
-              { x: 220, y: 560 },
-              { x: 1505, y: 360 },
-              { x: 1855, y: 1040 },
-              { x: 140, y: 1040 }
-            ]
-          },
-          {
-            id: 'contour-left',
-            points: [
-              { x: 0, y: 140 },
-              { x: 700, y: 10 },
-              { x: 630, y: 170 },
-              { x: 120, y: 380 }
-            ]
-          },
-          {
-            id: 'contour-top',
-            points: [
-              { x: 1040, y: 10 },
-              { x: 1910, y: 150 },
-              { x: 1760, y: 320 },
-              { x: 900, y: 250 }
-            ]
-          },
-          {
-            id: 'contour-right',
-            points: [
-              { x: 1290, y: 440 },
-              { x: 1635, y: 380 },
-              { x: 1918, y: 1080 },
-              { x: 1490, y: 1080 }
-            ]
-          }
-        ];
-
-        let closestLine = null;
-        let minDistance = Infinity;
-
-        contourLines.forEach(line => {
-          // Calcular distância mínima do mouse para a linha
-          let lineMinDistance = Infinity;
-          // Escalar pontos do viewBox para pixels atuais
-          const scaledPoints = line.points.map(p => ({ x: p.x * scaleX, y: p.y * scaleY }));
-
-          for (let i = 0; i < scaledPoints.length; i++) {
-            const p1 = scaledPoints[i];
-            const p2 = scaledPoints[(i + 1) % scaledPoints.length]; // fecha o polígono
-            
-            // Distância do ponto à linha (aproximação)
-            const A = mouseX - p1.x;
-            const B = mouseY - p1.y;
-            const C = p2.x - p1.x;
-            const D = p2.y - p1.y;
-
-            const dot = A * C + B * D;
-            const lenSq = C * C + D * D;
-            let param = -1;
-            
-            if (lenSq !== 0) {
-              param = dot / lenSq;
-            }
-
-            let xx, yy;
-            if (param < 0) {
-              xx = p1.x;
-              yy = p1.y;
-            } else if (param > 1) {
-              xx = p2.x;
-              yy = p2.y;
-            } else {
-              xx = p1.x + param * C;
-              yy = p1.y + param * D;
-            }
-
-            const dx = mouseX - xx;
-            const dy = mouseY - yy;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            lineMinDistance = Math.min(lineMinDistance, distance);
-          }
-
-          if (lineMinDistance < minDistance) {
-            minDistance = lineMinDistance;
-            closestLine = line.id;
-          }
-        });
-
-        // Ativar hover se estiver próximo o suficiente
-        const detectionRadius = 160;
-        if (minDistance < detectionRadius) {
-          // Intensidade aumenta conforme o mouse se aproxima da linha (distância menor = brilho maior)
-          intensity = Math.max(0, (1 - (minDistance / detectionRadius)) * 0.9);
-          detectedLine = closestLine;
-        }
-        
-        setHoveredLine(detectedLine);
-        setGlowIntensity(intensity);
-        setIsHovering(intensity > 0);
-      }
-    };
-
-    const handleMouseLeave = () => {
-      setMousePosition({ x: -100, y: -100 });
-      setHoveredLine(null);
-      setGlowIntensity(0);
-      setIsHovering(false);
-    };
-
-    const linesContainer = animatedLinesRef.current;
-    if (linesContainer) {
-      linesContainer.addEventListener('mousemove', handleMouseMove);
-      linesContainer.addEventListener('mouseleave', handleMouseLeave);
-      return () => {
-        linesContainer.removeEventListener('mousemove', handleMouseMove);
-        linesContainer.removeEventListener('mouseleave', handleMouseLeave);
-      };
-    }
-  }, []);
 
   // Mouse glow effect para seção de preços - Efeito de brilho que segue o cursor
   useEffect(() => {
@@ -193,7 +46,7 @@ export default function Home() {
         const viewportHeight = rect.height;
         
         // Atualizar posição do mouse em tempo real
-        setMousePosition({ x: mouseX, y: mouseY });
+        // setMousePosition({ x: mouseX, y: mouseY });
         setIsMouseOverPricing(true);
         
         // Detecção baseada em pontos das linhas (igual à hero section)
@@ -348,15 +201,11 @@ export default function Home() {
     const animateGlow = () => {
       if (isMouseOverPricing) {
         setGlowPosition(prev => {
-          const dx = mousePosition.x - prev.x;
-          const dy = mousePosition.y - prev.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
           // Interpolação suave para seguir o cursor
-          const lerpFactor = Math.min(0.15, distance * 0.01);
+          const lerpFactor = 0.15;
           return {
-            x: prev.x + dx * lerpFactor,
-            y: prev.y + dy * lerpFactor
+            x: prev.x,
+            y: prev.y
           };
         });
         
@@ -373,7 +222,7 @@ export default function Home() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isMouseOverPricing, mousePosition]);
+  }, [isMouseOverPricing]);
 
   // Parallax effect - Zoom in on scroll
   useEffect(() => {
@@ -540,178 +389,10 @@ export default function Home() {
 
         {/* Animated Lines Effect - Hero Section */}
         <div 
-          ref={animatedLinesRef}
           className="absolute inset-0 pointer-events-auto overflow-hidden"
           style={{ zIndex: 20 }}
         >
-          <svg 
-            className="absolute inset-0 w-full h-full" 
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 1920 1080"
-            preserveAspectRatio="xMidYMid slice"
-            aria-hidden="true"
-          >
-            {/* Gradientes para as linhas da hero section */}
-            <defs>
-              {/* Gradientes sutis das linhas da hero section */}
-              <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(59, 130, 246, 0)" />
-                <stop offset="20%" stopColor="rgba(59, 130, 246, 0.15)" />
-                <stop offset="50%" stopColor="rgba(139, 92, 246, 0.25)" />
-                <stop offset="80%" stopColor="rgba(59, 130, 246, 0.15)" />
-                <stop offset="100%" stopColor="rgba(59, 130, 246, 0)" />
-              </linearGradient>
-
-              <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-                <stop offset="30%" stopColor="rgba(139, 92, 246, 0.1)" />
-                <stop offset="60%" stopColor="rgba(59, 130, 246, 0.2)" />
-                <stop offset="100%" stopColor="rgba(139, 92, 246, 0)" />
-              </linearGradient>
-
-              <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(236, 72, 153, 0)" />
-                <stop offset="25%" stopColor="rgba(236, 72, 153, 0.1)" />
-                <stop offset="75%" stopColor="rgba(139, 92, 246, 0.15)" />
-                <stop offset="100%" stopColor="rgba(236, 72, 153, 0)" />
-              </linearGradient>
-
-
-            </defs>
-
-            {/* Overlay de contornos dos jornais */}
-            <g style={{ mixBlendMode: 'screen', opacity: 0.8 }}>
-              {/* CONTORNO PRINCIPAL – jornal grande central (parte inferior) */}
-              <path
-                id="contour-main"
-                d="
-                  M220,560
-                  L1505,360
-                  L1855,1040
-                  L140,1040
-                  Z
-                "
-                fill="none"
-                transform="translate(0, 10)"
-                stroke="url(#gradient1)"
-                strokeWidth={hoveredLine === 'contour-main' ? 2.5 : 1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  pointerEvents: 'stroke',
-                  vectorEffect: 'non-scaling-stroke',
-                  // linha contínua (sem dash)
-                  opacity: hoveredLine === 'contour-main' ? 0.95 : 0.65,
-                  filter:
-                    hoveredLine === 'contour-main'
-                      ? `drop-shadow(0 0 12px rgba(59,130,246,${glowIntensity * 0.9}))
-                         drop-shadow(0 0 24px rgba(139,92,246,${glowIntensity * 0.5}))`
-                      : 'none',
-                  transition: 'all .2s ease'
-                }}
-                onMouseEnter={() => setHoveredLine('contour-main')}
-                onMouseLeave={() => setHoveredLine(null)}
-              />
-
-              {/* CONTORNO SUPERIOR-ESQUERDO – jornal ao topo esquerdo */}
-              <path
-                id="contour-left"
-                d="
-                  M0,140
-                  L700,10
-                  L630,170
-                  L120,380
-                  Z
-                "
-                fill="none"
-                transform="translate(-10, -10)"
-                stroke="url(#gradient2)"
-                strokeWidth={hoveredLine === 'contour-left' ? 2.5 : 1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  pointerEvents: 'stroke',
-                  vectorEffect: 'non-scaling-stroke',
-                  // linha contínua (sem dash)
-                  opacity: hoveredLine === 'contour-left' ? 0.95 : 0.6,
-                  filter:
-                    hoveredLine === 'contour-left'
-                      ? `drop-shadow(0 0 12px rgba(139,92,246,${glowIntensity * 0.9}))
-                         drop-shadow(0 0 24px rgba(59,130,246,${glowIntensity * 0.5}))`
-                      : 'none',
-                  transition: 'all .2s ease'
-                }}
-                onMouseEnter={() => setHoveredLine('contour-left')}
-                onMouseLeave={() => setHoveredLine(null)}
-              />
-
-              {/* CONTORNO SUPERIOR – jornal de fundo no topo */}
-              <path
-                id="contour-top"
-                d="
-                  M1040,10
-                  L1910,150
-                  L1760,320
-                  L900,250
-                  Z
-                "
-                fill="none"
-                transform="translate(0, -18)"
-                stroke="url(#gradient3)"
-                strokeWidth={hoveredLine === 'contour-top' ? 2.5 : 1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  pointerEvents: 'stroke',
-                  vectorEffect: 'non-scaling-stroke',
-                  // linha contínua (sem dash)
-                  opacity: hoveredLine === 'contour-top' ? 0.95 : 0.6,
-                  filter:
-                    hoveredLine === 'contour-top'
-                      ? `drop-shadow(0 0 12px rgba(236,72,153,${glowIntensity * 0.9}))
-                         drop-shadow(0 0 24px rgba(139,92,246,${glowIntensity * 0.5}))`
-                      : 'none',
-                  transition: 'all .2s ease'
-                }}
-                onMouseEnter={() => setHoveredLine('contour-top')}
-                onMouseLeave={() => setHoveredLine(null)}
-              />
-
-              {/* CONTORNO DIREITO – jornal grande à direita */}
-              <path
-                id="contour-right"
-                d="
-                  M1290,440
-                  L1635,380
-                  L1918,1080
-                  L1490,1080
-                  Z
-                "
-                fill="none"
-                transform="translate(-8, 0)"
-                stroke="url(#gradient2)"
-                strokeWidth={hoveredLine === 'contour-right' ? 2.5 : 1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  pointerEvents: 'stroke',
-                  vectorEffect: 'non-scaling-stroke',
-                  // linha contínua (sem dash)
-                  opacity: hoveredLine === 'contour-right' ? 0.95 : 0.6,
-                  filter:
-                    hoveredLine === 'contour-right'
-                      ? `drop-shadow(0 0 12px rgba(139,92,246,${glowIntensity * 0.9}))
-                         drop-shadow(0 0 24px rgba(59,130,246,${glowIntensity * 0.5}))`
-                      : 'none',
-                  transition: 'all .2s ease'
-                }}
-                onMouseEnter={() => setHoveredLine('contour-right')}
-                onMouseLeave={() => setHoveredLine(null)}
-              />
-            </g>
-
-
-          </svg>
+          <HeroSection />
         </div>
 
         {/* Overlay 1 - Escuro para legibilidade */}
