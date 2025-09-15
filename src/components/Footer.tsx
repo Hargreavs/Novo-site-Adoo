@@ -10,7 +10,7 @@ export default function Footer() {
       
       {/* Container principal com blur/vidro fosco */}
       <div className="relative bg-white/5 backdrop-blur-sm border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+        <div className="mx-auto max-w-7xl px-6 py-12 pb-12 lg:px-8">
           
           {/* Grid responsivo: 3 colunas desktop, 1 coluna mobile */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">

@@ -685,8 +685,8 @@ export default function DiariosOficiais() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
             <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tight fade-in-delay-1">
-                Diários Oficiais
-              </h1>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Diários Oficiais</span>
+            </h1>
             <p className="mt-3 text-base text-gray-300 max-w-2xl mx-auto sm:text-lg sm:mt-4 fade-in-delay-2">
               Pesquise publicações, crie monitoramentos e navegue pelas edições oficiais.
             </p>
@@ -1848,7 +1848,7 @@ export default function DiariosOficiais() {
             className={`absolute inset-0 bg-black/50 backdrop-blur-sm ${drawerAnimation === 'slide-in' ? 'drawer-overlay-fade-in' : drawerAnimation === 'slide-out' ? 'drawer-overlay-fade-out' : ''}`}
             onClick={closeDrawer} 
           />
-          <div className={`absolute right-0 top-0 h-full w-full max-w-2xl bg-slate-900 border-l border-white/10 shadow-2xl ${drawerAnimation === 'slide-in' ? 'drawer-slide-in-right' : drawerAnimation === 'slide-out' ? 'drawer-slide-out-right' : ''}`}>
+          <div className={`absolute right-0 top-0 h-full w-full max-w-4xl bg-slate-900 border-l border-white/10 shadow-2xl ${drawerAnimation === 'slide-in' ? 'drawer-slide-in-right' : drawerAnimation === 'slide-out' ? 'drawer-slide-out-right' : ''}`}>
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
               <h3 className="text-lg font-semibold text-white">Preview da Publicação</h3>
               <button
@@ -1903,7 +1903,7 @@ export default function DiariosOficiais() {
             className={`absolute inset-0 bg-black/50 backdrop-blur-sm ${monitorDrawerAnimation === 'slide-in' ? 'drawer-overlay-fade-in' : monitorDrawerAnimation === 'slide-out' ? 'drawer-overlay-fade-out' : ''}`}
             onClick={closeMonitorDrawer} 
           />
-          <div className={`absolute right-0 top-0 h-full w-full max-w-2xl bg-slate-900 border-l border-white/10 shadow-2xl ${monitorDrawerAnimation === 'slide-in' ? 'drawer-slide-in-right' : monitorDrawerAnimation === 'slide-out' ? 'drawer-slide-out-right' : ''}`}>
+          <div className={`absolute right-0 top-0 h-full w-full max-w-4xl bg-slate-900 border-l border-white/10 shadow-2xl ${monitorDrawerAnimation === 'slide-in' ? 'drawer-slide-in-right' : monitorDrawerAnimation === 'slide-out' ? 'drawer-slide-out-right' : ''}`}>
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
               <h3 className="text-lg font-semibold text-white">Ocorrências do Monitoramento</h3>
               <button

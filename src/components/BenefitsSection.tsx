@@ -111,7 +111,7 @@ export default function BenefitsSection() {
         </RevealWrapper>
 
         {/* Desktop Layout */}
-        <div className="hidden lg:grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-stretch">
+        <div className="hidden lg:grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
           {/* Card principal */}
           <RevealWrapper delay={200}>
             <BenefitMainCard benefit={active} />
