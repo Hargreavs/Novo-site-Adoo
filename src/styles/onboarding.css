@@ -1,0 +1,163 @@
+/* Estilos para o onboarding guiado */
+
+/* Classe de brilho para elementos ativos no onboarding */
+.onb-glow {
+  position: relative;
+  z-index: 20;
+  box-shadow: 
+    0 0 0 2px rgba(99, 102, 241, 0.35), 
+    0 0 24px rgba(59, 130, 246, 0.35);
+  animation: pulseGlow 1.6s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+/* Animação de pulsação do brilho */
+@keyframes pulseGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 0 0 2px rgba(99, 102, 241, 0.35), 
+      0 0 16px rgba(59, 130, 246, 0.25);
+  }
+  50% { 
+    box-shadow: 
+      0 0 0 3px rgba(99, 102, 241, 0.5), 
+      0 0 28px rgba(59, 130, 246, 0.45);
+  }
+}
+
+/* Melhorar a visibilidade dos cards durante o onboarding */
+.onb-glow.context-card {
+  transform: scale(1.02);
+  transition: transform 0.3s ease;
+}
+
+/* Estilo para o container dos cards de contexto */
+#context-cards-container {
+  position: relative;
+}
+
+/* Estilo para o painel de configuração */
+#context-config-panel {
+  position: relative;
+}
+
+/* Estilo para o botão de criar monitoramento */
+#btn-criar-monitoramento {
+  position: relative;
+}
+
+/* Garantir que elementos com brilho tenham z-index adequado */
+.onb-glow {
+  z-index: 25 !important;
+}
+
+/* Animação suave para transições entre etapas */
+.onboarding-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Estilo para o overlay do spotlight */
+.spotlight-overlay {
+  pointer-events: auto;
+}
+
+/* Melhorar acessibilidade - foco visível */
+.onb-glow:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.8);
+  outline-offset: 2px;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+  .onb-glow {
+    box-shadow: 
+      0 0 0 1px rgba(99, 102, 241, 0.35), 
+      0 0 16px rgba(59, 130, 246, 0.25);
+  }
+  
+  @keyframes pulseGlow {
+    0%, 100% { 
+      box-shadow: 
+        0 0 0 1px rgba(99, 102, 241, 0.35), 
+        0 0 12px rgba(59, 130, 246, 0.25);
+    }
+    50% { 
+      box-shadow: 
+        0 0 0 2px rgba(99, 102, 241, 0.5), 
+        0 0 20px rgba(59, 130, 246, 0.35);
+    }
+  }
+}
+
+/* Animação de entrada para o coach panel */
+.coach-panel-enter {
+  animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animação de saída para o coach panel */
+.coach-panel-exit {
+  animation: slideOutDown 0.3s ease-in;
+}
+
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+}
+
+/* Estilo para o indicador de progresso */
+.onboarding-progress {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  height: 4px;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* Efeito de hover nos botões do coach panel */
+.coach-button {
+  transition: all 0.2s ease;
+}
+
+.coach-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.coach-button:active {
+  transform: translateY(0);
+}
+
+/* Estilo para o botão principal do coach panel */
+.coach-button-primary {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.coach-button-primary:hover {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+/* Estilo para elementos desabilitados */
+.coach-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}

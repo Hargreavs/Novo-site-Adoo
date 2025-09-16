@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TransparentHeader from "@/components/TransparentHeader";
 import RevealWrapper from "@/components/RevealWrapper";
+import GuidedOnboarding from "@/components/onboarding/GuidedOnboarding";
+import RegisterModal from "@/components/RegisterModal";
 
 // Tipos para o sistema de monitoramento
 interface MockSummary {
@@ -76,9 +78,161 @@ interface Monitoring {
 export default function RadarIA() {
   const [selectedContext, setSelectedContext] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [monitorings, setMonitorings] = useState<Monitoring[]>([]);
+  const [monitorings, setMonitorings] = useState<Monitoring[]>([
+    {
+      id: '1',
+      contextType: 'concursos',
+      title: 'Concursos Públicos - Educação',
+      createdAt: '2024-01-10',
+      status: 'active',
+      totalFound: 12,
+      lastFound: '2024-01-15',
+      configurations: {
+        diarios: ['DOU', 'DOSP'],
+        tipo: 'Concursos Públicos'
+      },
+      history: [
+        {
+          id: '1',
+          contextType: 'concursos',
+          title: 'Edital de Concurso Público - Secretaria de Educação',
+          date: '2024-01-15',
+          source: 'DOU',
+          url: '#',
+          isRead: false,
+          details: {
+            instituicao: 'Secretaria de Educação',
+            cargos: ['Professor', 'Coordenador'],
+            vagas: 50,
+            salario: 'R$ 3.500,00',
+            inscricaoInicio: '2024-01-20',
+            inscricaoFim: '2024-02-20',
+            taxaInscricao: 'R$ 80,00',
+            dataProva: '2024-03-15',
+            linkEdital: '#',
+            resumo: 'Concurso para provimento de vagas na área de educação'
+          }
+        },
+        {
+          id: '2',
+          contextType: 'concursos',
+          title: 'Concurso Público - Tribunal de Justiça',
+          date: '2024-01-14',
+          source: 'DOU',
+          url: '#',
+          isRead: true,
+          details: {
+            instituicao: 'Tribunal de Justiça',
+            cargos: ['Analista Judiciário'],
+            vagas: 20,
+            salario: 'R$ 5.000,00',
+            inscricaoInicio: '2024-01-18',
+            inscricaoFim: '2024-02-18',
+            taxaInscricao: 'R$ 120,00',
+            dataProva: '2024-03-10',
+            linkEdital: '#',
+            resumo: 'Concurso para analista judiciário'
+          }
+        }
+      ],
+      selectedDiarios: ['DOU', 'DOSP'],
+      valorRange: { min: 0, max: 100000 },
+      valorRangeType: 'predefined',
+      selectedPredefinedRange: 'qualquer',
+      newCount: 2,
+      lastSeenCount: 10
+    },
+    {
+      id: '2',
+      contextType: 'licitacoes',
+      title: 'Licitações - Tecnologia',
+      createdAt: '2024-01-08',
+      status: 'active',
+      totalFound: 8,
+      lastFound: '2024-01-14',
+      configurations: {
+        fonte: 'ComprasNet',
+        categoria: 'Tecnologia da Informação',
+        valorMin: 10000,
+        valorMax: 100000,
+        valorRangeType: 'custom',
+        selectedPredefinedRange: 'custom',
+        tipo: 'Licitações'
+      },
+      history: [
+        {
+          id: '3',
+          contextType: 'licitacoes',
+          title: 'Pregão Eletrônico - Equipamentos de TI',
+          date: '2024-01-14',
+          source: 'ComprasNet',
+          url: '#',
+          isRead: false,
+          details: {
+            orgao: 'Ministério da Educação',
+            modalidade: 'Pregão Eletrônico',
+            objeto: 'Aquisição de equipamentos de informática',
+            categoria: 'Tecnologia da Informação',
+            valorEstimado: 'R$ 50.000,00',
+            entregaPropostasAte: '2024-01-25',
+            sessaoPublicaEm: '2024-01-25',
+            linkEdital: '#',
+            resumo: 'Pregão para aquisição de computadores e periféricos'
+          }
+        }
+      ],
+      selectedDiarios: ['DOU'],
+      valorRange: { min: 10000, max: 100000 },
+      valorRangeType: 'custom',
+      selectedPredefinedRange: 'custom',
+      newCount: 1,
+      lastSeenCount: 7
+    },
+    {
+      id: '3',
+      contextType: 'leis',
+      title: 'Leis e Legislação - Municipal',
+      createdAt: '2024-01-05',
+      status: 'inactive',
+      totalFound: 5,
+      lastFound: '2024-01-12',
+      configurations: {
+        ente: 'Municipal',
+        tipoNorma: 'Lei',
+        tipo: 'Leis/Legislação'
+      },
+      history: [
+        {
+          id: '4',
+          contextType: 'leis',
+          title: 'Lei Municipal nº 5.432/2024',
+          date: '2024-01-12',
+          source: 'DOM',
+          url: '#',
+          isRead: true,
+          details: {
+            ente: 'Prefeitura Municipal',
+            tipoNorma: 'Lei',
+            numero: '5.432',
+            ano: 2024,
+            ementa: 'Dispõe sobre a criação de cargos efetivos',
+            linkNorma: '#',
+            resumo: 'Lei que cria novos cargos na estrutura municipal'
+          }
+        }
+      ],
+      selectedDiarios: ['DOM'],
+      valorRange: { min: 0, max: 100000 },
+      valorRangeType: 'predefined',
+      selectedPredefinedRange: 'qualquer',
+      newCount: 0,
+      lastSeenCount: 5
+    }
+  ]);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [selectedMonitoring, setSelectedMonitoring] = useState<Monitoring | null>(null);
   const [showDrawer, setShowDrawer] = useState(false);
+  
   const [drawerAnimation, setDrawerAnimation] = useState<'slide-in' | 'slide-out' | null>(null);
   const [selectedDiarios, setSelectedDiarios] = useState<string[]>([]);
   const [expandedPoderes, setExpandedPoderes] = useState<{[key: string]: boolean}>({});
@@ -86,7 +240,7 @@ export default function RadarIA() {
   const [diarioSearchTerm, setDiarioSearchTerm] = useState('');
   const [valorRange, setValorRange] = useState({ min: 0, max: 100000 });
   const [valorRangeType, setValorRangeType] = useState<'predefined' | 'custom'>('predefined');
-  const [selectedPredefinedRange, setSelectedPredefinedRange] = useState<string>('10k-50k');
+  const [selectedPredefinedRange, setSelectedPredefinedRange] = useState<string>('qualquer');
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
   const [selectedItems, setSelectedItems] = useState<{[key: string]: boolean}>({});
   const [showFilters, setShowFilters] = useState(false);
@@ -94,9 +248,19 @@ export default function RadarIA() {
   const [filterDateRange, setFilterDateRange] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTiposNorma, setSelectedTiposNorma] = useState<string[]>([]);
-  const [selectedCategoria, setSelectedCategoria] = useState<string>('Tecnologia da Informação');
+  const [selectedCategoria, setSelectedCategoria] = useState<string>('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [selectedFonte, setSelectedFonte] = useState<string>('ComprasNet');
+  const [selectedFonte, setSelectedFonte] = useState<string>('');
+  
+  console.log('Current form state:', {
+    selectedContext,
+    selectedDiarios: selectedDiarios.length,
+    selectedCategoria,
+    selectedFonte,
+    selectedTiposNorma: selectedTiposNorma.length
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
 
   // Funções para localStorage
   const getLastSeenCount = (monitoringId: string): number => {
@@ -256,6 +420,7 @@ export default function RadarIA() {
 
   // Faixas pré-definidas
   const predefinedRanges = [
+    { id: 'qualquer', label: 'Qualquer valor', min: 0, max: 10000000 },
     { id: 'ate-10k', label: 'Até R$ 10.000', min: 0, max: 10000 },
     { id: '10k-50k', label: 'R$ 10.000 - R$ 50.000', min: 10000, max: 50000 },
     { id: '50k-200k', label: 'R$ 50.000 - R$ 200.000', min: 50000, max: 200000 },
@@ -286,41 +451,70 @@ export default function RadarIA() {
   };
 
   const handleContextClick = (contextId: string) => {
+    console.log('Context clicked:', contextId);
     setSelectedContext(contextId);
     setShowForm(true);
+    
+    // Limpar campos específicos quando muda de contexto
+    if (contextId === 'licitacoes') {
+      setSelectedCategoria('');
+      setSelectedFonte('');
+      setSelectedPredefinedRange('qualquer');
+    } else if (contextId === 'leis') {
+      setSelectedTiposNorma([]);
+    }
+    
+    // Sempre limpar diários para forçar nova seleção
+    setSelectedDiarios([]);
+    
+    // Scroll automático para a caixa de configuração após um pequeno delay
+    setTimeout(() => {
+      const configPanel = document.querySelector('#context-config-panel');
+      if (configPanel) {
+        configPanel.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'center'
+        });
+      }
+    }, 100);
   };
 
-  const handleCreateMonitoring = () => {
-    // Mock: Simular criação de monitoramento
-    const context = contexts.find(c => c.id === selectedContext);
-    const totalFound = Math.floor(Math.random() * 50) + 1;
-    const newMonitoring: Monitoring = {
-      id: Date.now().toString(),
-      contextId: selectedContext!,
-      contextName: context?.title || '',
-      contextIcon: context?.icon || '',
-      contextColor: context?.color || '',
-      createdAt: new Date().toISOString(),
-      status: 'active',
-      totalFound,
-      lastFound: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      configurations: getMockConfigurations(selectedContext!),
-      history: generateMockHistory(selectedContext!),
-      selectedDiarios: selectedDiarios,
-      valorRange: valorRange,
-      valorRangeType: valorRangeType,
-      selectedPredefinedRange: selectedPredefinedRange,
-      newCount: totalFound, // Inicialmente todas são novas
-      lastSeenCount: 0
-    };
+  const handleCreateMonitoring = async () => {
+    // Verificar se usuário está logado
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     
-    setMonitorings(prev => updateNewCounts([...prev, newMonitoring]));
-    setShowForm(false);
-    setSelectedContext(null);
-    setSelectedDiarios([]);
-    setValorRange({ min: 0, max: 100000 });
-    setValorRangeType('predefined');
-    setSelectedPredefinedRange('10k-50k');
+    if (!isLoggedIn) {
+      // Abrir modal de cadastro se não estiver logado
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const configurations = getMockConfigurations(selectedContext!);
+      const result = await createMonitoring(selectedContext!, configurations);
+      
+      if (result.success) {
+        // Recarregar lista de monitoramentos
+        const updatedMonitorings = await fetchMonitorings();
+        setMonitorings(updateNewCounts(updatedMonitorings));
+        
+        setShowForm(false);
+        setSelectedContext(null);
+        setSelectedDiarios([]);
+        setValorRange({ min: 0, max: 100000 });
+        setValorRangeType('predefined');
+        setSelectedPredefinedRange('10k-50k');
+        
+        showToast('Monitoramento criado com sucesso!', 'success');
+      }
+    } catch (error) {
+      console.error('Erro ao criar monitoramento:', error);
+      showToast('Erro ao criar monitoramento. Tente novamente.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleMonitoringStatus = (monitoringId: string) => {
@@ -347,8 +541,8 @@ export default function RadarIA() {
         };
       case 'licitacoes':
         return {
-          fonte: 'ComprasNet',
-          categoria: 'Tecnologia da Informação',
+          fonte: selectedFonte || 'ComprasNet',
+          categoria: selectedCategoria || 'Tecnologia da Informação',
           valorMin: valorRange.min,
           valorMax: valorRange.max,
           valorRangeType: valorRangeType,
@@ -366,138 +560,23 @@ export default function RadarIA() {
     }
   };
 
-  // Mock data detalhado por contexto
-  const generateMockConcursoDetails = (): ConcursoDetails => {
-    const instituicoes = ['Polícia Federal', 'Tribunal de Justiça', 'Prefeitura Municipal', 'Secretaria de Estado', 'Ministério Público'];
-    const cargos = ['Agente', 'Escrivão', 'Analista', 'Técnico', 'Assistente', 'Coordenador'];
-    
-    return {
-      instituicao: instituicoes[Math.floor(Math.random() * instituicoes.length)],
-      cargos: cargos.slice(0, Math.floor(Math.random() * 3) + 1),
-      vagas: Math.floor(Math.random() * 50) + 10,
-      salario: `R$ ${(Math.random() * 10000 + 3000).toFixed(2).replace('.', ',')}`,
-      inscricaoInicio: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-      inscricaoFim: new Date(Date.now() + Math.random() * 60 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-      taxaInscricao: `R$ ${(Math.random() * 100 + 50).toFixed(2).replace('.', ',')}`,
-      dataProva: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-      linkEdital: 'https://example.com/edital',
-      resumo: 'Novo edital de concurso público publicado com vagas para diversas áreas de atuação. Inscrições abertas com prazo definido e processo seletivo estruturado.'
-    };
+  // Funções para integração com API real
+  const createMonitoring = async (contextId: string, configurations: any) => {
+    // TODO: Implementar chamada para API real
+    console.log('Criando monitoramento:', { contextId, configurations });
+    return { success: true, id: Date.now().toString() };
   };
 
-  const generateMockLicitacaoDetails = (): LicitacaoDetails => {
-    const orgaos = ['Prefeitura Municipal de SP', 'Governo do Estado', 'Ministério da Saúde', 'Tribunal Regional'];
-    const modalidades = ['Pregão Eletrônico', 'Concorrência', 'Tomada de Preços', 'RDC'];
-    const categorias = ['Tecnologia da Informação', 'Engenharia', 'Saúde', 'Educação', 'Segurança'];
-    
-    return {
-      orgao: orgaos[Math.floor(Math.random() * orgaos.length)],
-      modalidade: modalidades[Math.floor(Math.random() * modalidades.length)],
-      objeto: 'Contratação de serviços especializados para modernização de sistemas',
-      categoria: categorias[Math.floor(Math.random() * categorias.length)],
-      valorEstimado: `R$ ${(Math.random() * 500000 + 50000).toFixed(2).replace('.', ',')}`,
-      entregaPropostasAte: new Date(Date.now() + Math.random() * 15 * 24 * 60 * 60 * 1000).toLocaleString('pt-BR'),
-      sessaoPublicaEm: new Date(Date.now() + Math.random() * 20 * 24 * 60 * 60 * 1000).toLocaleString('pt-BR'),
-      linkEdital: 'https://example.com/licitacao',
-      resumo: 'Nova licitação aberta para contratação de serviços especializados. Processo transparente com critérios bem definidos e prazo adequado para participação.'
-    };
+  const fetchMonitorings = async () => {
+    // TODO: Implementar chamada para API real
+    console.log('Buscando monitoramentos...');
+    return [];
   };
 
-  const generateMockLeiDetails = (): LeiDetails => {
-    const entes = ['Câmara Municipal de BH', 'Assembleia Legislativa', 'Congresso Nacional', 'Ministério da Justiça'];
-    const tiposNorma = ['Lei', 'Decreto', 'Portaria', 'Instrução Normativa', 'Resolução'];
-    const assuntos = ['Transparência Pública', 'Meio Ambiente', 'Educação', 'Saúde', 'Tecnologia', 'Segurança'];
-    
-    return {
-      ente: entes[Math.floor(Math.random() * entes.length)],
-      tipoNorma: tiposNorma[Math.floor(Math.random() * tiposNorma.length)],
-      numero: Math.floor(Math.random() * 9999) + 1,
-      ano: new Date().getFullYear(),
-      ementa: 'Estabelece diretrizes para modernização da administração pública e transparência nos processos',
-      assuntos: assuntos.slice(0, Math.floor(Math.random() * 3) + 1),
-      dataPublicacao: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-      linkPublicacao: 'https://example.com/lei',
-      resumo: 'Nova norma publicada com alterações significativas na legislação. Impacto direto nos processos administrativos e maior transparência nos procedimentos.'
-    };
-  };
-
-  const generateMockHistory = (contextId: string): MockSummary[] => {
-    const history: MockSummary[] = [];
-    const now = new Date();
-    
-    for (let i = 0; i < Math.floor(Math.random() * 10) + 5; i++) {
-      const date = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-      const contextType = contextId as 'concursos' | 'licitacoes' | 'leis';
-      
-      let details: ConcursoDetails | LicitacaoDetails | LeiDetails;
-      switch (contextType) {
-        case 'concursos':
-          details = generateMockConcursoDetails();
-          break;
-        case 'licitacoes':
-          details = generateMockLicitacaoDetails();
-          break;
-        case 'leis':
-          details = generateMockLeiDetails();
-          break;
-        default:
-          details = generateMockConcursoDetails();
-      }
-      
-      history.push({
-        id: i.toString(),
-        contextType,
-        title: getMockTitle(contextId),
-        date: date.toISOString(),
-        source: getMockSource(contextId),
-        url: '#',
-        isRead: Math.random() > 0.7, // 30% chance de estar lido
-        details
-      });
-    }
-    
-    return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  };
-
-  const getMockTitle = (contextId: string) => {
-    const titles = {
-      concursos: [
-        'Edital de Concurso Público - Prefeitura Municipal',
-        'Concurso Público - Tribunal de Justiça',
-        'Processo Seletivo - Secretaria de Educação'
-      ],
-      licitacoes: [
-        'Pregão Eletrônico - Serviços de TI',
-        'Tomada de Preços - Obras de Infraestrutura',
-        'Concorrência - Equipamentos Médicos'
-      ],
-      leis: [
-        'Lei Municipal sobre Transparência Pública',
-        'Decreto de Regulamentação de Serviços',
-        'Portaria sobre Licenciamento Ambiental'
-      ]
-    };
-    const contextTitles = titles[contextId as keyof typeof titles] || [];
-    return contextTitles[Math.floor(Math.random() * contextTitles.length)];
-  };
-
-  const getMockSource = (contextId: string) => {
-    const sources = {
-      concursos: ['DOU', 'DOE', 'DOM'],
-      licitacoes: ['ComprasNet', 'BEC/SP', 'Portal Estadual'],
-      leis: ['DOU', 'Assembleia Legislativa', 'Câmara Municipal']
-    };
-    const contextSources = sources[contextId as keyof typeof sources] || [];
-    return contextSources[Math.floor(Math.random() * contextSources.length)];
-  };
-
-  const getMockDescription = (contextId: string) => {
-    const descriptions = {
-      concursos: 'Novo edital publicado com vagas para diversas áreas',
-      licitacoes: 'Nova licitação aberta conforme critérios estabelecidos',
-      leis: 'Nova norma publicada com alterações na legislação'
-    };
-    return descriptions[contextId as keyof typeof descriptions] || '';
+  const fetchMonitoringHistory = async (monitoringId: string) => {
+    // TODO: Implementar chamada para API real
+    console.log('Buscando histórico do monitoramento:', monitoringId);
+    return [];
   };
 
   const handleViewDetails = (monitoring: any) => {
@@ -678,55 +757,66 @@ export default function RadarIA() {
     return filtered;
   };
 
-  // useEffect para atualizar newCounts quando monitorings mudam
+  // useEffect para carregar monitoramentos reais
   useEffect(() => {
-    // Adicionar monitoramentos de exemplo para demonstração
-    if (monitorings.length === 0) {
-      const exampleMonitorings: Monitoring[] = [
-        {
-          id: 'example-1',
-          contextId: 'concursos',
-          contextName: 'Concursos Públicos',
-          contextIcon: '🎯',
-          contextColor: 'from-blue-500 to-indigo-600',
-          createdAt: new Date().toISOString(),
-          status: 'active',
-          totalFound: 15,
-          lastFound: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          configurations: { diarios: ['DOU - Diário Oficial da União'], tipo: 'Concursos Públicos' },
-          history: generateMockHistory('concursos'),
-          selectedDiarios: ['dou'],
-          valorRange: { min: 0, max: 100000 },
-          valorRangeType: 'predefined',
-          selectedPredefinedRange: '10k-50k',
-          newCount: 8,
-          lastSeenCount: 7
-        },
-        {
-          id: 'example-2',
-          contextId: 'licitacoes',
-          contextName: 'Licitações',
-          contextIcon: '📋',
-          contextColor: 'from-green-500 to-emerald-600',
-          createdAt: new Date().toISOString(),
-          status: 'active',
-          totalFound: 12,
-          lastFound: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          configurations: { fonte: 'ComprasNet', categoria: 'Tecnologia da Informação', valorMin: 10000, valorMax: 50000, valorRangeType: 'predefined', selectedPredefinedRange: '10k-50k', tipo: 'Licitações' },
-          history: generateMockHistory('licitacoes'),
-          selectedDiarios: [],
-          valorRange: { min: 10000, max: 50000 },
-          valorRangeType: 'predefined',
-          selectedPredefinedRange: '10k-50k',
-          newCount: 5,
-          lastSeenCount: 7
-        }
-      ];
-      setMonitorings(updateNewCounts(exampleMonitorings));
-    } else {
-      setMonitorings(prev => updateNewCounts(prev));
-    }
+    const loadMonitorings = async () => {
+      try {
+        const data = await fetchMonitorings();
+        setMonitorings(updateNewCounts(data));
+      } catch (error) {
+        console.error('Erro ao carregar monitoramentos:', error);
+        showToast('Erro ao carregar monitoramentos', 'error');
+      }
+    };
+
+    loadMonitorings();
   }, []);
+
+
+  // Função para lidar com conclusão do onboarding
+  const handleOnboardingComplete = () => {
+    // Recarregar monitoramentos após onboarding
+    const loadMonitorings = async () => {
+      try {
+        const data = await fetchMonitorings();
+        setMonitorings(updateNewCounts(data));
+      } catch (error) {
+        console.error('Erro ao carregar monitoramentos:', error);
+      }
+    };
+    loadMonitorings();
+  };
+
+  const handleClearSelections = () => {
+    console.log('Clearing selections...');
+    // Limpar todas as seleções do formulário
+    setSelectedDiarios([]);
+    setSelectedTiposNorma([]);
+    setSelectedCategoria('');
+    setSelectedFonte('');
+    setValorRange({ min: 0, max: 10000000 });
+    setValorRangeType('predefined');
+    setSelectedPredefinedRange('qualquer');
+    console.log('Selections cleared');
+  };
+
+  const handleCloseConfig = () => {
+    // Fechar janela de configuração e limpar contexto selecionado
+    setShowForm(false);
+    setSelectedContext(null);
+    
+    // Scroll automático para centralizar os cards de contexto
+    setTimeout(() => {
+      const contextCards = document.querySelector('#context-cards-container');
+      if (contextCards) {
+        contextCards.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'center'
+        });
+      }
+    }, 100);
+  };
 
   return (
     <div className="bg-transparent min-h-screen">
@@ -747,14 +837,26 @@ export default function RadarIA() {
           {/* Contextos Disponíveis */}
           <div className="mb-12 fade-in-delay-3">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white">
-                Escolha o contexto para monitorar
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">
+                  Escolha o contexto para monitorar
+                </h2>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('radarOnboarding');
+                    window.location.reload();
+                  }}
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Refazer tour
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div id="context-cards-container" className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {contexts.map((context, index) => (
                 <div
                   key={context.id}
+                  id={`context-card-${context.id}`}
                   onClick={() => handleContextClick(context.id)}
                   className="relative bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 cursor-pointer hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)] group"
                   style={{ animationDelay: `${0.4 + index * 0.1}s` }}
@@ -776,7 +878,7 @@ export default function RadarIA() {
 
           {/* Formulário de Configuração */}
           {showForm && selectedContext && (
-            <div className="bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 mb-8 fade-in-up">
+            <div id="context-config-panel" className="bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 mb-8 fade-in-up">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-white">
                   Configurar {contexts.find(c => c.id === selectedContext)?.title}
@@ -787,11 +889,11 @@ export default function RadarIA() {
                     setSelectedContext(null);
                     setSelectedDiarios([]);
                     setSelectedTiposNorma([]);
-                    setSelectedCategoria('Tecnologia da Informação');
-                    setSelectedFonte('ComprasNet');
-                    setValorRange({ min: 0, max: 100000 });
+                    setSelectedCategoria('');
+                    setSelectedFonte('');
+                    setValorRange({ min: 0, max: 10000000 });
                     setValorRangeType('predefined');
-                    setSelectedPredefinedRange('10k-50k');
+                    setSelectedPredefinedRange('qualquer');
                   }}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
@@ -996,6 +1098,7 @@ export default function RadarIA() {
                       onChange={(e) => setSelectedFonte(e.target.value)}
                       className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
+                      <option value="" disabled>Selecione a fonte</option>
                       <option value="ComprasNet">ComprasNet</option>
                       <option value="BEC/SP - Bolsa Eletrônica de Compras">BEC/SP - Bolsa Eletrônica de Compras</option>
                       <option value="Portal de Compras do Estado">Portal de Compras do Estado</option>
@@ -1011,6 +1114,7 @@ export default function RadarIA() {
                       onChange={(e) => setSelectedCategoria(e.target.value)}
                       className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
+                      <option value="" disabled>Selecione a categoria</option>
                       <option value="Engenharia">Engenharia</option>
                       <option value="Tecnologia da Informação">Tecnologia da Informação</option>
                       <option value="Saúde">Saúde</option>
@@ -1190,21 +1294,20 @@ export default function RadarIA() {
               {/* Botão de Criação */}
               <div className="mt-8 pt-6 border-t border-gray-600">
                 <button
+                  id="btn-criar-monitoramento"
                   onClick={handleCreateMonitoring}
-                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Criar monitoramento de contexto
+                  {isLoading ? 'Criando monitoramento...' : 'Criar monitoramento de contexto'}
                 </button>
               </div>
             </div>
           )}
 
           {/* Monitoramentos Ativos */}
-          {monitorings.length > 0 && (
-            <div className="mb-12 fade-in-delay-3">
-              <h2 className="text-2xl font-bold text-white mb-8 text-center">
-                Monitoramentos Ativos
-              </h2>
+          <div className="mb-12 fade-in-delay-3">
+            {monitorings.length > 0 ? (
               <div className="space-y-3">
                 {monitorings.map((monitoring, index) => (
                   <div
@@ -1316,8 +1419,18 @@ export default function RadarIA() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🎯</div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Nenhum monitoramento ativo
+                </h3>
+                <p className="text-gray-400 mb-6">
+                  Crie seu primeiro monitoramento para começar a receber notificações
+                </p>
+              </div>
+            )}
+          </div>
 
 
         </div>
@@ -1821,6 +1934,62 @@ export default function RadarIA() {
           </div>
         </div>
       )}
+
+      <RegisterModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        title="Cadastro Rápido"
+        subtitle="Crie sua conta para começar a usar o Radar IA"
+        onSuccess={() => {
+          setIsRegisterModalOpen(false);
+          // Após cadastro, criar o monitoramento
+          handleCreateMonitoring();
+        }}
+      />
+
+      <GuidedOnboarding
+        hasExistingMonitorings={monitorings.length > 0}
+        onComplete={handleOnboardingComplete}
+        onCreateMonitoring={handleCreateMonitoring}
+        onClearSelections={handleClearSelections}
+        onCloseConfig={handleCloseConfig}
+        isConfigValid={useCallback(() => {
+          let isValid = false;
+          
+          if (selectedContext === 'concursos') {
+            isValid = selectedDiarios.length > 0;
+            console.log('Concursos validation:', { selectedDiarios: selectedDiarios.length, isValid });
+          } else if (selectedContext === 'licitacoes') {
+            const hasDiarios = selectedDiarios.length > 0;
+            const hasCategoria = selectedCategoria && selectedCategoria !== '';
+            const hasFonte = selectedFonte && selectedFonte !== '';
+            isValid = hasDiarios && hasCategoria && hasFonte;
+            
+            console.log('Licitações validation:', { 
+              hasDiarios, 
+              hasCategoria, 
+              hasFonte,
+              selectedCategoria: `"${selectedCategoria}"`,
+              selectedFonte: `"${selectedFonte}"`,
+              isValid 
+            });
+          } else if (selectedContext === 'leis') {
+            const hasDiarios = selectedDiarios.length > 0;
+            const hasTiposNorma = selectedTiposNorma.length > 0;
+            isValid = hasDiarios && hasTiposNorma;
+            
+            console.log('Leis validation:', { 
+              hasDiarios, 
+              hasTiposNorma,
+              selectedTiposNorma,
+              isValid 
+            });
+          }
+          
+          return isValid;
+        }, [selectedContext, selectedDiarios, selectedCategoria, selectedFonte, selectedTiposNorma])}
+      />
+      
     </div>
   );
 }

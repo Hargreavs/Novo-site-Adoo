@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
 import { ptBR } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
+import RegisterModal from '@/components/RegisterModal';
 
 // Registrar o locale português brasileiro
 registerLocale('pt-BR', ptBR);
@@ -57,11 +58,27 @@ export default function DiariosOficiais() {
   }>>([
     {
       id: 1,
-      terms: ['concurso público'],
-      diarios: ['dou', 'dosp', 'domsaopaulo'],
+      terms: ['concurso público', 'edital'],
+      diarios: ['DOU', 'DOSP'],
       isActive: true,
-      createdAt: new Date().toISOString(),
-      occurrences: 10
+      createdAt: '2024-01-10',
+      occurrences: 15
+    },
+    {
+      id: 2,
+      terms: ['licitação', 'pregão'],
+      diarios: ['DOU', 'DOM'],
+      isActive: true,
+      createdAt: '2024-01-08',
+      occurrences: 8
+    },
+    {
+      id: 3,
+      terms: ['nomeação', 'decreto'],
+      diarios: ['DOU'],
+      isActive: false,
+      createdAt: '2024-01-05',
+      occurrences: 3
     }
   ]);
   const [selectedDiario, setSelectedDiario] = useState('');
@@ -85,6 +102,8 @@ export default function DiariosOficiais() {
   const [editingMonitor, setEditingMonitor] = useState<number | null>(null);
   const [showMonitorDrawer, setShowMonitorDrawer] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [hasClickedCreateMonitor, setHasClickedCreateMonitor] = useState(false);
   const [selectedMonitor, setSelectedMonitor] = useState<{
     id: number;
     terms: string[];
@@ -413,9 +432,16 @@ export default function DiariosOficiais() {
   const handleSearch = async () => {
     if (searchTerms.length === 0 || selectedDiarios.length === 0) return;
     
+    // Verificar se usuário está logado
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!isLoggedIn) {
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    
     setIsSearching(true);
     
-    // Simular busca
+    // Simular busca com dados mockados
     setTimeout(() => {
       const mockResults = [
         {
@@ -441,6 +467,46 @@ export default function DiariosOficiais() {
           date: '2024-01-13',
           excerpt: 'O Presidente da República, no uso das atribuições que lhe confere o art. 84...',
           url: '#'
+        },
+        {
+          id: 4,
+          title: 'Lei Municipal nº 5.432/2024 - Criação de Cargos',
+          source: 'DOM',
+          date: '2024-01-12',
+          excerpt: 'Dispõe sobre a criação de cargos efetivos na estrutura organizacional da Prefeitura Municipal...',
+          url: '#'
+        },
+        {
+          id: 5,
+          title: 'Tomada de Preços nº 002/2024 - Serviços de Limpeza',
+          source: 'DOSP',
+          date: '2024-01-11',
+          excerpt: 'Tomada de preços para contratação de serviços de limpeza e conservação de prédios públicos...',
+          url: '#'
+        },
+        {
+          id: 6,
+          title: 'Concurso Público - Tribunal de Justiça',
+          source: 'DOU',
+          date: '2024-01-10',
+          excerpt: 'Abertura de concurso público para provimento de vagas de Analista Judiciário...',
+          url: '#'
+        },
+        {
+          id: 7,
+          title: 'Licitação - Aquisição de Medicamentos',
+          source: 'DOU',
+          date: '2024-01-09',
+          excerpt: 'Pregão eletrônico para aquisição de medicamentos para o programa de saúde pública...',
+          url: '#'
+        },
+        {
+          id: 8,
+          title: 'Portaria nº 789/2024 - Regulamentação',
+          source: 'DOU',
+          date: '2024-01-08',
+          excerpt: 'Regulamenta o funcionamento dos órgãos de fiscalização e controle interno...',
+          url: '#'
         }
       ];
       setSearchResults(mockResults);
@@ -448,17 +514,25 @@ export default function DiariosOficiais() {
     }, 2000);
   };
 
-  const handleSaveAsMonitor = () => {
-    const newMonitoramento = {
-      id: Date.now(),
-      terms: searchTerms,
-      diarios: selectedDiarios,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      occurrences: Math.floor(Math.random() * 10) + 1
-    };
-    setMonitoramentos([...monitoramentos, newMonitoramento]);
-    showToastMessage('Monitoramento criado com sucesso!');
+  const handleSaveAsMonitor = async () => {
+    try {
+      // TODO: Implementar chamada para API real
+      console.log('Salvando monitoramento:', { terms: searchTerms, diarios: selectedDiarios });
+      
+      const newMonitoramento = {
+        id: Date.now(),
+        terms: searchTerms,
+        diarios: selectedDiarios,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        occurrences: 0 // Será atualizado pela API
+      };
+      setMonitoramentos([...monitoramentos, newMonitoramento]);
+      showToastMessage('Monitoramento criado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar monitoramento:', error);
+      showToastMessage('Erro ao salvar monitoramento. Tente novamente.');
+    }
   };
 
   // Função para filtrar diários na nova estrutura hierárquica
@@ -569,6 +643,14 @@ export default function DiariosOficiais() {
 
   const handleCreateMonitoramento = () => {
     setValidationError('');
+    setHasClickedCreateMonitor(true);
+    
+    // Verificar se usuário está logado
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!isLoggedIn) {
+      setIsRegisterModalOpen(true);
+      return;
+    }
     
     if (!monitorTerm || !monitorTerm.trim()) {
       setValidationError('Adicione um termo para monitorar');
@@ -653,6 +735,11 @@ export default function DiariosOficiais() {
     setMonitorTermInput('');
     setValidationError('');
     setShowCreateForm(false);
+    
+    // Se não há monitoramentos, resetar o estado para mostrar a mensagem novamente
+    if (monitoramentos.length === 0) {
+      setHasClickedCreateMonitor(false);
+    }
   };
 
   const handleInputBlur = () => {
@@ -1322,7 +1409,7 @@ export default function DiariosOficiais() {
                         <div className="flex gap-3">
                           <button
                             onClick={handleCreateMonitoramento}
-                            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-medium transition-colors"
+                            className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
                           >
                             Criar monitoramento
                           </button>
@@ -1439,26 +1526,29 @@ export default function DiariosOficiais() {
                     );
                   })
                 ) : (
-                  <div className="text-center py-8 sm:py-12">
-                    <BellIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                    <h4 className="text-base font-semibold text-white mb-2 sm:text-lg">Nenhum monitoramento criado ainda</h4>
-                    <p className="text-sm text-gray-400 mb-4">Crie alertas para acompanhar termos específicos nos diários oficiais.</p>
-                    <button 
-                      onClick={() => {
-                        setShowCreateForm(true);
-                        setMonitorTermInput('');
-                        setValidationError('');
-                        setEditingMonitor(null);
-                        setMonitorTerm('');
-                      }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Crie seu primeiro monitoramento
-                    </button>
-                    <p className="text-xs text-gray-500 mt-3">
-                      💡 Você pode pausar ou editar o alerta quando quiser
-                    </p>
-                  </div>
+                  !hasClickedCreateMonitor && (
+                    <div className="text-center py-8 sm:py-12">
+                      <BellIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                      <h4 className="text-base font-semibold text-white mb-2 sm:text-lg">Você ainda não possui monitoramento de termos cadastrado.</h4>
+                      <p className="text-sm text-gray-400 mb-4">Crie alertas para acompanhar termos específicos nos diários oficiais.</p>
+                      <button 
+                        onClick={() => {
+                          setShowCreateForm(true);
+                          setMonitorTermInput('');
+                          setValidationError('');
+                          setEditingMonitor(null);
+                          setMonitorTerm('');
+                          setHasClickedCreateMonitor(true);
+                        }}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                      >
+                        Crie seu primeiro monitoramento
+                      </button>
+                      <p className="text-xs text-gray-500 mt-3">
+                        💡 Você pode pausar ou editar o alerta quando quiser
+                      </p>
+                    </div>
+                  )
                 )}
               </div>
             </div>
@@ -1473,13 +1563,6 @@ export default function DiariosOficiais() {
                   <h3 className="text-lg font-semibold text-white sm:text-xl">Navegar Diários</h3>
                   <p className="text-sm text-gray-400 sm:text-base">Visualize e baixe edições oficiais</p>
                 </div>
-                <button
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
-                >
-                  <ArrowDownTrayIcon className="h-3 w-3" />
-                  <span className="hidden sm:inline">Baixar última edição</span>
-                  <span className="sm:hidden">Baixar</span>
-                </button>
               </div>
 
               {/* Toolbar melhorada */}
@@ -1585,6 +1668,21 @@ export default function DiariosOficiais() {
                         })}
                       </div>
                     </div>
+                    
+                    {/* Botão de limpar seleção */}
+                    {selectedDiario && (
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={() => setSelectedDiario('')}
+                          className="px-3 py-2 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 hover:border-gray-500/50 text-gray-300 hover:text-gray-200 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 hover:scale-105"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Limpar seleção
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
@@ -1766,7 +1864,7 @@ export default function DiariosOficiais() {
                         </div>
                         
                         {/* Edições anteriores normais */}
-                        {[1, 2, 3, 4].map((_, index) => (
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((_, index) => (
                           <div
                             key={index}
                             className="bg-white/5 border border-white/10 rounded-lg p-2 sm:p-3 hover:bg-white/10 transition-colors"
@@ -1777,7 +1875,7 @@ export default function DiariosOficiais() {
                                   Edição {String(new Date().getDate() - index - 1).padStart(2, '0')}/{String(new Date().getMonth() + 1).padStart(2, '0')}/{new Date().getFullYear()}
                                 </h5>
                                 <p className="text-xs text-gray-400 sm:text-sm">
-                                  {Math.floor(Math.random() * 200) + 50} páginas
+                                  N/A páginas
                                 </p>
                               </div>
                               <div className="flex gap-2">
@@ -1808,7 +1906,7 @@ export default function DiariosOficiais() {
                                 Edição {String(new Date().getDate() - index).padStart(2, '0')}/{String(new Date().getMonth() + 1).padStart(2, '0')}/{new Date().getFullYear()}
                               </h5>
                               <p className="text-xs text-gray-400 sm:text-sm">
-                                {Math.floor(Math.random() * 200) + 50} páginas
+                                N/A páginas
                               </p>
                             </div>
                             <div className="flex gap-2">
@@ -1959,7 +2057,7 @@ export default function DiariosOficiais() {
                                 DOU
                               </span>
                               <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded font-medium">
-                                📅 {new Date(Date.now() - index * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')}
+                                📅 N/A
                               </span>
                             </div>
                           </div>
@@ -1998,6 +2096,23 @@ export default function DiariosOficiais() {
           </div>
         </div>
       )}
+
+      {/* Register Modal */}
+      <RegisterModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        title="Cadastro Rápido"
+        subtitle="Crie sua conta para começar a usar os Diários Oficiais"
+        onSuccess={() => {
+          setIsRegisterModalOpen(false);
+          // Após cadastro, continuar com a ação original
+          if (searchTerms.length > 0 && selectedDiarios.length > 0) {
+            handleSearch();
+          } else if (monitorTerm && monitorDiarios.length > 0) {
+            handleCreateMonitoramento();
+          }
+        }}
+      />
     </div>
   );
 }

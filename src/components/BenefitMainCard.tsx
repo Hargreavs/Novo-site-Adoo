@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Benefit } from '@/types/benefits';
+import Image from 'next/image';
 
 interface BenefitMainCardProps {
   benefit: Benefit;
@@ -43,9 +44,41 @@ export default function BenefitMainCard({ benefit }: BenefitMainCardProps) {
         </div>
         
         {/* Right Half - Mock UI */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-b from-white/5 to-white/[0.02] shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset] p-4 h-full min-h-[450px] flex items-center justify-center">
-          <div className="w-full h-full">
-            {benefit.media}
+        <div className="h-full">
+          {/* Moldura externa com radius, sombra e um padding mínimo */}
+          <div
+            className="
+              relative w-full h-full rounded-xl border border-white/10
+              bg-gradient-to-b from-white/5 to-white/[0.02]
+              shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]
+              p-2 pb-2
+            "
+          >
+            {/* Área da mídia padronizada: mesma altura para todos os cards */}
+            <div
+              className="
+                benefit-media relative w-full h-full rounded-lg overflow-hidden
+                /* altura fluida e consistente entre cards */
+              "
+            >
+              {/* Wrapper que força qualquer filho a preencher */}
+              <div className="absolute inset-0 [&>*]:absolute [&>*]:inset-0 [&>*]:w-full [&>*]:h-full [&>*]:object-cover [&>*]:rounded-lg">
+                {typeof benefit.media === "string" ? (
+                  // Se vier apenas a string do src
+                  <Image
+                    src={benefit.media}
+                    alt={benefit.title}
+                    fill
+                    className="object-cover rounded-lg"
+                    priority={false}
+                    quality={85}
+                  />
+                ) : (
+                  // Se vier um ReactNode (Image, video, etc.)
+                  benefit.media
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

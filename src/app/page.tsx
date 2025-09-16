@@ -15,16 +15,27 @@ import RevealWrapper from '@/components/RevealWrapper';
 import Personas from '@/components/Personas';
 import TestimonialsCarousel from '@/components/TestimonialsCarousel';
 import BenefitsSection from '@/components/BenefitsSection';
+import SimpleRegisterModal from '@/components/SimpleRegisterModal';
+import ContactSalesModal from '@/components/ContactSalesModal';
 
 export default function Home() {
   const heroRef = useRef<HTMLElement>(null);
   const parallaxImageRef = useRef<HTMLDivElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
+  const [trialForm, setTrialForm] = useState({ name: '', email: '' });
+  const [isSimpleRegisterModalOpen, setIsSimpleRegisterModalOpen] = useState(false);
+  const [isContactSalesModalOpen, setIsContactSalesModalOpen] = useState(false);
   const [showScrollCue, setShowScrollCue] = useState(true);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hoveredLine, setHoveredLine] = useState<string | null>(null);
   const [glowIntensity, setGlowIntensity] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+
+  const handleTrialSubmit = () => {
+    if (trialForm.name && trialForm.email) {
+      setIsSimpleRegisterModalOpen(true);
+    }
+  };
   const [selectedContext, setSelectedContext] = useState<string>('concurso');
   const animatedLinesRef = useRef<HTMLDivElement>(null);
   const [hoveredPricingLine, setHoveredPricingLine] = useState<string | null>(null);
@@ -34,6 +45,14 @@ export default function Home() {
   const [isMouseOverPricing, setIsMouseOverPricing] = useState(false);
   const [glowPosition, setGlowPosition] = useState({ x: 0, y: 0 });
   const animationFrameRef = useRef<number | null>(null);
+
+  // Helper functions para gerar filtros de brilho
+  const getMainGlowFilter = () => "drop-shadow(0 0 20px rgba(59,130,246,0.8)) drop-shadow(0 0 40px rgba(139,92,246,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.4)) drop-shadow(0 0 80px rgba(236,72,153,0.2))";
+  const getLeftGlowFilter = () => "drop-shadow(0 0 20px rgba(139,92,246,0.8)) drop-shadow(0 0 40px rgba(59,130,246,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.4)) drop-shadow(0 0 80px rgba(236,72,153,0.2))";
+  const getTopGlowFilter = () => "drop-shadow(0 0 20px rgba(236,72,153,0.8)) drop-shadow(0 0 40px rgba(139,92,246,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.4)) drop-shadow(0 0 80px rgba(59,130,246,0.2))";
+  const getRightGlowFilter = () => "drop-shadow(0 0 16px rgba(139,92,246,0.8)) drop-shadow(0 0 32px rgba(59,130,246,0.6)) drop-shadow(0 0 48px rgba(168,85,247,0.4))";
+
+
 
   // Mouse glow effect - Efeito de brilho que percorre as linhas
   useEffect(() => {
@@ -371,6 +390,7 @@ export default function Home() {
     };
   }, [isMouseOverPricing]);
 
+
   // Parallax effect - Zoom in on scroll
   useEffect(() => {
     const handleScroll = () => {
@@ -489,7 +509,7 @@ export default function Home() {
     {
       icon: ShieldCheckIcon,
       title: 'Alertas personalizados',
-      description: 'Cadastre palavras-chave (concursos, licitações, nomes, CNPJs) e seja avisado na hora em que forem publicadas nos diários oficiais de seu interesse.'
+      description: 'Cadastre alertas (concursos, licitações, nomes, CNPJs) e seja avisado na hora em que forem publicadas nos diários oficiais de seu interesse.'
     },
     {
       icon: ClockIcon,
@@ -499,7 +519,7 @@ export default function Home() {
     {
       icon: CloudIcon,
       title: 'Notificação em tempo real',
-      description: 'Receba alertas por e-mail, SMS e push assim que sua palavra-chave for publicada.'
+      description: 'Receba alertas por e-mail, SMS e push assim que seu alerta for publicada.'
     }
   ];
 
@@ -598,14 +618,8 @@ export default function Home() {
                   vectorEffect: 'non-scaling-stroke',
                   // linha contínua (sem dash)
                   opacity: hoveredLine === 'contour-main' ? 0.95 : 0.65,
-                  filter:
-                    hoveredLine === 'contour-main'
-                      ? `drop-shadow(0 0 20px rgba(59,130,246,${glowIntensity * 2.0}))
-                         drop-shadow(0 0 40px rgba(139,92,246,${glowIntensity * 1.5}))
-                         drop-shadow(0 0 60px rgba(168,85,247,${glowIntensity * 1.2}))
-                         drop-shadow(0 0 80px rgba(236,72,153,${glowIntensity * 0.8}))`
-                      : 'none',
-                  transition: 'all .2s ease'
+                  filter: hoveredLine === 'contour-main' ? getMainGlowFilter() : "none",
+                  transition: "all .2s ease"
                 }}
                 onMouseEnter={() => setHoveredLine('contour-main')}
                 onMouseLeave={() => setHoveredLine(null)}
@@ -632,14 +646,8 @@ export default function Home() {
                   vectorEffect: 'non-scaling-stroke',
                   // linha contínua (sem dash)
                   opacity: hoveredLine === 'contour-left' ? 0.95 : 0.6,
-                  filter:
-                    hoveredLine === 'contour-left'
-                      ? `drop-shadow(0 0 20px rgba(139,92,246,${glowIntensity * 2.0}))
-                         drop-shadow(0 0 40px rgba(59,130,246,${glowIntensity * 1.5}))
-                         drop-shadow(0 0 60px rgba(168,85,247,${glowIntensity * 1.2}))
-                         drop-shadow(0 0 80px rgba(236,72,153,${glowIntensity * 0.8}))`
-                      : 'none',
-                  transition: 'all .2s ease'
+                  filter: hoveredLine === 'contour-left' ? getLeftGlowFilter() : "none",
+                  transition: "all .2s ease"
                 }}
                 onMouseEnter={() => setHoveredLine('contour-left')}
                 onMouseLeave={() => setHoveredLine(null)}
@@ -666,14 +674,8 @@ export default function Home() {
                   vectorEffect: 'non-scaling-stroke',
                   // linha contínua (sem dash)
                   opacity: hoveredLine === 'contour-top' ? 0.95 : 0.6,
-                  filter:
-                    hoveredLine === 'contour-top'
-                      ? `drop-shadow(0 0 20px rgba(236,72,153,${glowIntensity * 2.0}))
-                         drop-shadow(0 0 40px rgba(139,92,246,${glowIntensity * 1.5}))
-                         drop-shadow(0 0 60px rgba(168,85,247,${glowIntensity * 1.2}))
-                         drop-shadow(0 0 80px rgba(59,130,246,${glowIntensity * 0.8}))`
-                      : 'none',
-                  transition: 'all .2s ease'
+                  filter: hoveredLine === 'contour-top' ? getTopGlowFilter() : "none",
+                  transition: "all .2s ease"
                 }}
                 onMouseEnter={() => setHoveredLine('contour-top')}
                 onMouseLeave={() => setHoveredLine(null)}
@@ -700,13 +702,8 @@ export default function Home() {
                   vectorEffect: 'non-scaling-stroke',
                   // linha contínua (sem dash)
                   opacity: hoveredLine === 'contour-right' ? 0.95 : 0.6,
-                  filter:
-                    hoveredLine === 'contour-right'
-                      ? `drop-shadow(0 0 16px rgba(139,92,246,${glowIntensity * 1.5}))
-                         drop-shadow(0 0 32px rgba(59,130,246,${glowIntensity * 1.0}))
-                         drop-shadow(0 0 48px rgba(168,85,247,${glowIntensity * 1.0}))`
-                      : 'none',
-                  transition: 'all .2s ease'
+                  filter: hoveredLine === 'contour-right' ? getRightGlowFilter() : "none",
+                  transition: "all .2s ease"
                 }}
                 onMouseEnter={() => setHoveredLine('contour-right')}
                 onMouseLeave={() => setHoveredLine(null)}
@@ -847,12 +844,12 @@ export default function Home() {
                       </div>
                       
                       {/* Botão principal premium */}
-                      <button className="radar-button text-sm sm:text-base" style={{ pointerEvents: 'auto' }}>
+                      <Link href="/radar-ia?onboarding=1" className="radar-button text-sm sm:text-base" style={{ pointerEvents: 'auto' }}>
                         <svg className="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                         Ativar Radar IA grátis
-                      </button>
+                      </Link>
                       
                       {/* CTA secundário */}
                       <div className="w-full">
@@ -914,7 +911,7 @@ export default function Home() {
               style={{
                 strokeDasharray: "10 5",
                 animation: "dash 3s linear infinite",
-                opacity: hoveredPricingLine === 'pricingLine1' ? 0.8 : 0.6,
+                opacity: hoveredPricingLine === 'pricingLine1' ? 1.0 : 0.8,
                 transition: "all 0.3s ease-in-out"
               }}
             />
@@ -928,7 +925,7 @@ export default function Home() {
               style={{
                 strokeDasharray: "15 8",
                 animation: "dash 4s linear infinite reverse",
-                opacity: hoveredPricingLine === 'pricingLine2' ? 0.8 : 0.6,
+                opacity: hoveredPricingLine === 'pricingLine2' ? 1.0 : 0.8,
                 transition: "all 0.3s ease-in-out"
               }}
             />
@@ -942,7 +939,7 @@ export default function Home() {
               style={{
                 strokeDasharray: "12 6",
                 animation: "dash 5s linear infinite",
-                opacity: hoveredPricingLine === 'pricingLine3' ? 0.8 : 0.6,
+                opacity: hoveredPricingLine === 'pricingLine3' ? 1.0 : 0.8,
                 transition: "all 0.3s ease-in-out"
               }}
             />
@@ -950,19 +947,19 @@ export default function Home() {
             {/* Gradients */}
             <defs>
               <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(59, 130, 246, 0.3)" />
-                <stop offset="50%" stopColor="rgba(139, 92, 246, 0.5)" />
-                <stop offset="100%" stopColor="rgba(59, 130, 246, 0.3)" />
+                <stop offset="0%" stopColor="rgba(59, 130, 246, 0.5)" />
+                <stop offset="50%" stopColor="rgba(139, 92, 246, 0.7)" />
+                <stop offset="100%" stopColor="rgba(59, 130, 246, 0.5)" />
               </linearGradient>
               <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(139, 92, 246, 0.3)" />
-                <stop offset="50%" stopColor="rgba(168, 85, 247, 0.5)" />
-                <stop offset="100%" stopColor="rgba(139, 92, 246, 0.3)" />
+                <stop offset="0%" stopColor="rgba(139, 92, 246, 0.5)" />
+                <stop offset="50%" stopColor="rgba(168, 85, 247, 0.7)" />
+                <stop offset="100%" stopColor="rgba(139, 92, 246, 0.5)" />
               </linearGradient>
               <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(168, 85, 247, 0.3)" />
-                <stop offset="50%" stopColor="rgba(59, 130, 246, 0.5)" />
-                <stop offset="100%" stopColor="rgba(168, 85, 247, 0.3)" />
+                <stop offset="0%" stopColor="rgba(168, 85, 247, 0.5)" />
+                <stop offset="50%" stopColor="rgba(59, 130, 246, 0.7)" />
+                <stop offset="100%" stopColor="rgba(168, 85, 247, 0.5)" />
               </linearGradient>
               
               {/* Gradientes de brilho para hover */}
@@ -1016,16 +1013,62 @@ export default function Home() {
           <RevealWrapper delay={100}>
             <div className="mx-auto max-w-2xl lg:text-center">
               <h1 className="text-2xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-3xl lg:text-4xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Preços</h1>
-              <p className="mt-3 mb-20 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-                Escolha o plano ideal para suas necessidades
+              <p className="mt-3 mb-8 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+                Experimente antes de você pagar
               </p>
             </div>
           </RevealWrapper>
           
-          <div className="mx-auto mt-12 grid max-w-lg grid-cols-1 gap-8 lg:max-w-none lg:grid-cols-4" style={{ zIndex: 2, position: 'relative' }}>
+          {/* Formulário de Teste Gratuito */}
+          <RevealWrapper delay={200}>
+            <div className="mx-auto max-w-4xl">
+              <div className="bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)] group relative overflow-hidden">
+                {/* Efeito de brilho interno no hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-indigo-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+                <div className="flex flex-col sm:flex-row gap-4 items-end relative z-10">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Nome
+                    </label>
+                    <input
+                      type="text"
+                      value={trialForm.name}
+                      onChange={(e) => setTrialForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-white placeholder-gray-400"
+                      placeholder="Seu nome completo"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      E-mail
+                    </label>
+                    <input
+                      type="email"
+                      value={trialForm.email}
+                      onChange={(e) => setTrialForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-white placeholder-gray-400"
+                      placeholder="seu@email.com"
+                    />
+                  </div>
+                  <button
+                    onClick={handleTrialSubmit}
+                    disabled={!trialForm.name || !trialForm.email}
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Iniciar teste gratuito
+                  </button>
+                </div>
+                <p className="text-sm text-gray-400 mt-4 text-center relative z-10">
+                  Todos os nossos recursos ficam disponíveis no plano gratuito por <strong>7 dias</strong>. Depois escolha o plano ideal para as suas necessidades.
+                </p>
+              </div>
+            </div>
+          </RevealWrapper>
+
+          <div className="mx-auto mt-12 grid max-w-none grid-cols-1 gap-6 lg:grid-cols-4 px-4" style={{ zIndex: 2, position: 'relative' }}>
             {/* Plano Gratuito */}
             <RevealWrapper delay={200}>
-              <div className="relative bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
+              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
                 <div className="flex-1 flex flex-col">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-white">Gratuito</h3>
@@ -1057,24 +1100,24 @@ export default function Home() {
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
-                        <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center">
-                          <svg className="w-3 h-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        <div className="w-5 h-5 bg-gray-500/20 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                       </div>
                       <div className="ml-3 flex items-center gap-2">
-                        <span className="text-sm text-gray-300">1 palavra-chave (7 dias)</span>
                         <div className="relative inline-block group">
-                          <div className="inline-flex items-center justify-center w-4 h-4 bg-amber-500/20 text-amber-400 rounded-full cursor-help transition-all duration-200 hover:bg-amber-500/30">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none w-64 z-50">
-                            <p className="text-center">
-                              <strong>Informativo:</strong> Palavras-chave e contextos do Radar IA serão desativados após 7 dias. Ative um plano pago para continuar usando.
-                            </p>
+                          <span className="text-sm text-gray-300 cursor-help underline decoration-dashed decoration-white" style={{ textUnderlineOffset: '1px' }}>
+                            1 alerta <span className="font-bold text-white">(7 dias)</span>
+                          </span>
+                          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 py-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none w-64 border border-gray-600/30" style={{ zIndex: 99999 }}>
+                            <div className="text-center">
+                              <p className="font-medium text-yellow-400 mb-1 text-sm">Limitação de 7 dias</p>
+                              <p className="text-gray-400 leading-relaxed text-xs">
+                                Alertas e contextos do Radar IA serão desativados após 7 dias. Ative um plano pago para continuar usando.
+                              </p>
+                            </div>
                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                           </div>
                         </div>
@@ -1082,24 +1125,24 @@ export default function Home() {
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
-                        <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center">
-                          <svg className="w-3 h-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        <div className="w-5 h-5 bg-gray-500/20 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                       </div>
                       <div className="ml-3 flex items-center gap-2">
-                        <span className="text-sm text-gray-300">1 contexto no Radar IA (7 dias)</span>
                         <div className="relative inline-block group">
-                          <div className="inline-flex items-center justify-center w-4 h-4 bg-amber-500/20 text-amber-400 rounded-full cursor-help transition-all duration-200 hover:bg-amber-500/30">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none w-64 z-50">
-                            <p className="text-center">
-                              <strong>Informativo:</strong> Palavras-chave e contextos do Radar IA serão desativados após 7 dias. Ative um plano pago para continuar usando.
-                            </p>
+                          <span className="text-sm text-gray-300 cursor-help underline decoration-dashed decoration-white" style={{ textUnderlineOffset: '1px' }}>
+                            1 contexto no Radar IA <span className="font-bold text-white">(7 dias)</span>
+                          </span>
+                          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 py-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none w-64 border border-gray-600/30" style={{ zIndex: 99999 }}>
+                            <div className="text-center">
+                              <p className="font-medium text-yellow-400 mb-1 text-sm">Limitação de 7 dias</p>
+                              <p className="text-gray-400 leading-relaxed text-xs">
+                                Alertas e contextos do Radar IA serão desativados após 7 dias. Ative um plano pago para continuar usando.
+                              </p>
+                            </div>
                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                           </div>
                         </div>
@@ -1116,18 +1159,13 @@ export default function Home() {
                       <span className="ml-3 text-sm text-gray-300">Suporte: Padrão</span>
                     </li>
                   </ul>
-                  <div className="mt-auto">
-                    <button className="w-full bg-white/10 text-white border border-white/20 hover:bg-white/20 hover:border-white/30 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200">
-                      Começar grátis
-                    </button>
-                  </div>
                 </div>
               </div>
             </RevealWrapper>
 
             {/* Plano Básico */}
             <RevealWrapper delay={300}>
-              <div className="relative bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.1),0_15px_15px_-5px_rgba(0,0,0,0.04),0_0_30px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/20">
+              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.1),0_15px_15px_-5px_rgba(0,0,0,0.04),0_0_30px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/20">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Mais Popular</span>
                 </div>
@@ -1169,7 +1207,7 @@ export default function Home() {
                           </svg>
                         </div>
                       </div>
-                      <span className="ml-3 text-sm text-gray-300">Até 10 palavras-chave</span>
+                      <span className="ml-3 text-sm text-gray-300">Até 10 alertas</span>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
@@ -1192,18 +1230,13 @@ export default function Home() {
                       <span className="ml-3 text-sm text-gray-300">Suporte: Padrão</span>
                     </li>
                   </ul>
-                  <div className="mt-auto">
-                    <button className="w-full bg-blue-600 text-white hover:bg-blue-500 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200">
-                      Assinar Básico
-                    </button>
-                  </div>
                 </div>
               </div>
             </RevealWrapper>
 
             {/* Plano Premium */}
             <RevealWrapper delay={400}>
-              <div className="relative bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
+              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
                 <div className="flex-1 flex flex-col">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-white">Premium</h3>
@@ -1242,7 +1275,7 @@ export default function Home() {
                           </svg>
                         </div>
                       </div>
-                      <span className="ml-3 text-sm text-gray-300">Até 20 palavras-chave</span>
+                      <span className="ml-3 text-sm text-gray-300">Até 20 alertas</span>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
@@ -1256,8 +1289,8 @@ export default function Home() {
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
-                        <div className="w-5 h-5 bg-purple-500/20 rounded-full flex items-center justify-center">
-                          <svg className="w-3 h-3 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                        <div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </div>
@@ -1265,18 +1298,13 @@ export default function Home() {
                       <span className="ml-3 text-sm text-gray-300">Suporte: Prioritário</span>
                     </li>
                   </ul>
-                  <div className="mt-auto">
-                    <button className="w-full bg-blue-600 text-white hover:bg-blue-500 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200">
-                      Assinar Premium
-                    </button>
-                  </div>
                 </div>
               </div>
             </RevealWrapper>
 
             {/* Plano Empresarial */}
             <RevealWrapper delay={500}>
-              <div className="relative bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
+              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
                 <div className="flex-1 flex flex-col">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-white">Empresarial</h3>
@@ -1314,7 +1342,7 @@ export default function Home() {
                           </svg>
                         </div>
                       </div>
-                      <span className="ml-3 text-sm text-gray-300">Palavras-chave ilimitadas</span>
+                      <span className="ml-3 text-sm text-gray-300">Alertas ilimitados</span>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
@@ -1348,13 +1376,17 @@ export default function Home() {
                     </li>
                   </ul>
                   <div className="mt-auto">
-                    <button className="w-full bg-indigo-600 text-white hover:bg-indigo-500 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200">
+                    <button 
+                      onClick={() => setIsContactSalesModalOpen(true)}
+                      className="w-full bg-indigo-600 text-white hover:bg-indigo-500 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
+                    >
                       Contatar Vendas
                     </button>
                   </div>
                 </div>
               </div>
             </RevealWrapper>
+
           </div>
           
           {/* Rodapé com informação sobre pagamentos */}
@@ -1391,8 +1423,8 @@ export default function Home() {
                 Experimente a nossa mais nova e poderosa ferramenta Radar IA e receba editais e publicações já resumidas para você focar no que realmente importa.
               </p>
               <div className="mt-8 flex justify-center sm:mt-10">
-                <a
-                  href="#contact"
+                <Link
+                  href="/radar-ia?onboarding=1"
                   className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:px-8 sm:py-4"
                   style={{ pointerEvents: 'auto' }}
                 >
@@ -1401,14 +1433,31 @@ export default function Home() {
                   </svg>
                   Ativar Radar IA grátis
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-20"></div>
-                </a>
+                </Link>
               </div>
             </div>
           </RevealWrapper>
         </div>
       </div>
 
-      
+      {/* Simple Register Modal */}
+      <SimpleRegisterModal
+        isOpen={isSimpleRegisterModalOpen}
+        onClose={() => setIsSimpleRegisterModalOpen(false)}
+        onSuccess={() => {
+          setIsSimpleRegisterModalOpen(false);
+          // Marcar usuário como logado
+          localStorage.setItem('isLoggedIn', 'true');
+        }}
+        name={trialForm.name}
+        email={trialForm.email}
+      />
+
+      {/* Contact Sales Modal */}
+      <ContactSalesModal
+        isOpen={isContactSalesModalOpen}
+        onClose={() => setIsContactSalesModalOpen(false)}
+      />
 
     </div>
   );

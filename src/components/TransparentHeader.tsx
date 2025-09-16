@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import EciooLogo from '@/components/EciooLogo';
+import RegisterModal from '@/components/RegisterModal';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 
 interface TransparentHeaderProps {
@@ -12,6 +13,7 @@ interface TransparentHeaderProps {
 export default function TransparentHeader({ currentPage = '' }: TransparentHeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -113,7 +115,13 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
             API
           </Link>
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:space-x-4">
+          <button
+            onClick={() => setIsRegisterModalOpen(true)}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            Iniciar teste gratuito
+          </button>
           <a href="#" className="cta-secondary text-base font-semibold leading-6 text-white hover:text-blue-400">
             Entrar <span aria-hidden="true">→</span>
           </a>
@@ -171,7 +179,7 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
             >
               API
             </Link>
-            <div className="pt-4 border-t border-white/10">
+            <div className="pt-4 border-t border-white/10 space-y-2">
               <a 
                 href="#" 
                 className="block px-3 py-2 text-base font-semibold text-white hover:text-blue-400 transition-colors duration-200"
@@ -179,10 +187,25 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
               >
                 Entrar <span aria-hidden="true">→</span>
               </a>
+              <button
+                onClick={() => {
+                  setIsRegisterModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+              >
+                Iniciar teste gratuito
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Register Modal */}
+      <RegisterModal 
+        isOpen={isRegisterModalOpen} 
+        onClose={() => setIsRegisterModalOpen(false)} 
+      />
     </header>
   );
 }

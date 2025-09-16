@@ -2,13 +2,13 @@ import Image from 'next/image';
 
 export default function MockBuscaDeTermos() {
   return (
-    <div className="h-full w-full relative overflow-hidden rounded-xl">
+    <div className="relative rounded-xl overflow-hidden h-full w-full">
       <Image
         src="/images/radarIA.png"
-        alt="Radar IA Interface"
+        alt="Radar IA - Busca Inteligente"
         fill
-        className="object-cover rounded-xl"
-        priority
+        className="object-cover w-full h-full"
+        style={{ objectFit: 'cover' }}
       />
     </div>
   );

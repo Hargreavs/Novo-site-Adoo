@@ -1,0 +1,65 @@
+[33mcommit 305c90ee29e74ba066af98d592068b2eeed64c2f[m
+Author: Alex Augustus <alex.augustus2501@gmail.com>
+Date:   Sun Sep 14 16:30:09 2025 -0300
+
+    Initial commit
+
+.gitignore
+INSTRUCOES_LOGO.txt
+README.md
+eslint.config.mjs
+next.config.ts
+package-lock.json
+package.json
+postcss.config.mjs
+public/Advogado.png
+public/Concurseiro.png
+public/file.svg
+public/globe.svg
+"public/images/Imagem Di\303\241rio Oficial.png"
+public/images/clients/alfacon.svg
+public/images/clients/direcao.webp
+public/images/clients/estrategia.webp
+public/images/clients/gran.png
+public/images/clients/grupoq.png
+public/logo.png
+public/next.svg
+public/personas/concurseiro.png
+public/personas/direito.png
+public/personas/gestora.png
+public/personas/jornalista.png
+public/vercel.svg
+public/window.svg
+src/app/api/page.tsx
+src/app/diarios-oficiais/page.tsx
+src/app/diarios-oficiais/page.tsx.backup
+src/app/favicon.ico
+src/app/globals.css
+src/app/layout.tsx
+src/app/page.tsx
+src/app/page.tsx.backup
+src/app/politica-de-privacidade/page.tsx
+src/app/precos/page.tsx
+src/app/radar-ia/page.tsx
+src/app/termos-de-uso/page.tsx
+src/components/BenefitMainCard.tsx
+src/components/BenefitRail.tsx
+src/components/BenefitsSection.tsx
+src/components/BodyWrapper.tsx
+src/components/EciooLogo.tsx
+src/components/Footer.tsx
+src/components/GradientLayer.tsx
+src/components/HydrationFix.tsx
+src/components/Personas.tsx
+src/components/RevealWrapper.tsx
+src/components/TestimonialsCarousel.tsx
+src/components/TransparentHeader.tsx
+src/components/mocks/MockAlertas.tsx
+src/components/mocks/MockBuscaDeTermos.tsx
+src/components/mocks/MockCentral.tsx
+src/components/mocks/MockNotificacoes.tsx
+src/hooks/useHydrationFix.ts
+src/hooks/useRevealAnimation.ts
+src/styles/hero-lines.css
+src/types/benefits.ts
+tsconfig.json

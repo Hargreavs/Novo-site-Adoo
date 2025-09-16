@@ -2,13 +2,13 @@ import Image from 'next/image';
 
 export default function MockNotificacoes() {
   return (
-    <div className="h-full w-full relative overflow-hidden rounded-xl">
+    <div className="relative rounded-xl overflow-hidden h-full w-full">
       <Image
         src="/images/notificacao.png"
-        alt="Notificações Interface"
+        alt="Sistema de Notificações Multi-canal"
         fill
-        className="object-cover rounded-xl"
-        priority
+        className="object-cover w-full h-full"
+        style={{ objectFit: 'cover' }}
       />
     </div>
   );
