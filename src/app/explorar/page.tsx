@@ -21,14 +21,9 @@ export default function ExplorarPage() {
       
       {/* Hero Section */}
       <section className="relative isolate overflow-hidden h-screen flex items-center justify-center">
-        {/* Gradiente base (fallback) */}
+        {/* Gradiente sutil */}
         <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-          <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
-        </div>
-        
-        {/* Gradiente principal */}
-        <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-          <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+          <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#3b82f6] to-[#8b5cf6] opacity-10 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
         </div>
 
         {/* Conteúdo principal */}
@@ -36,7 +31,7 @@ export default function ExplorarPage() {
           <div className="mx-auto max-w-4xl text-center">
             <RevealWrapper>
               <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300">
                   Explorar
                 </span>
               </h1>
@@ -85,9 +80,9 @@ export default function ExplorarPage() {
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
             <div className="grid max-w-xl grid-cols-1 gap-8 lg:max-w-none lg:grid-cols-3">
               <RevealWrapper delay={100}>
-                <div className="flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200">
-                  <div className="flex items-center justify-center w-12 h-12 bg-blue-500/20 rounded-lg mb-6">
-                    <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-col bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-8 hover:bg-white/5 transition-all duration-200">
+                  <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg mb-6">
+                    <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
@@ -99,9 +94,9 @@ export default function ExplorarPage() {
               </RevealWrapper>
 
               <RevealWrapper delay={200}>
-                <div className="flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200">
-                  <div className="flex items-center justify-center w-12 h-12 bg-purple-500/20 rounded-lg mb-6">
-                    <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-col bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-8 hover:bg-white/5 transition-all duration-200">
+                  <div className="flex items-center justify-center w-12 h-12 bg-purple-500/10 rounded-lg mb-6">
+                    <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
@@ -113,9 +108,9 @@ export default function ExplorarPage() {
               </RevealWrapper>
 
               <RevealWrapper delay={300}>
-                <div className="flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200">
-                  <div className="flex items-center justify-center w-12 h-12 bg-green-500/20 rounded-lg mb-6">
-                    <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-col bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-8 hover:bg-white/5 transition-all duration-200">
+                  <div className="flex items-center justify-center w-12 h-12 bg-green-500/10 rounded-lg mb-6">
+                    <svg className="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
