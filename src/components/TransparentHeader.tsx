@@ -378,7 +378,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
               onClick={handleTrialClick}
               className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              Iniciar teste gratuito
+              Criar conta
             </button>
             <a href="#" className="cta-secondary text-sm font-medium leading-5 text-white hover:text-blue-400">
               Entrar <span aria-hidden="true">→</span>
@@ -647,7 +647,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                 }}
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
               >
-                Iniciar teste gratuito
+                Criar conta
               </button>
             </div>
           </div>
