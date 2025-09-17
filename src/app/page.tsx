@@ -673,8 +673,7 @@ export default function Home() {
 
   return (
     <div className="bg-transparent">
-      <TransparentHeader 
-        currentPage="" 
+      <TwoLevelHeader 
         onTrialClick={() => setIsTestModalOpen(true)} 
       />
 

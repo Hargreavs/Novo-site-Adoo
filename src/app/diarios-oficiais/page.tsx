@@ -810,7 +810,7 @@ export default function DiariosOficiais() {
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-3 sm:p-4 md:p-6 card-hover-glow">
           {/* Buscar Tab */}
           {activeTab === 'buscar' && (
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-4 sm:space-y-6 fade-in">
               {/* Header */}
               <div>
                 <h3 className="text-base font-semibold text-white sm:text-lg">Buscar Publicações</h3>
@@ -1031,19 +1031,12 @@ export default function DiariosOficiais() {
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data inicial</label>
                                 <div className="input-with-icon">
                                   <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                                  <LazyDatePicker
-                                    selected={customDateRange.start || null}
-                                    onChange={(date: Date | null) => setCustomDateRange({...customDateRange, start: date || undefined})}
-                                    selectsStart
-                                    startDate={customDateRange.start}
-                                    endDate={customDateRange.end}
-                                    maxDate={new Date()}
-                                    placeholderText="Selecione a data inicial"
+                                  <input
+                                    type="date"
+                                    value={customDateRange.start ? customDateRange.start.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value ? new Date(e.target.value) : undefined})}
+                                    max={new Date().toISOString().split('T')[0]}
                                     className="input-standard text-base w-full"
-                                    dateFormat="dd/MM/yyyy"
-                                    locale="pt-BR"
-                                    showPopperArrow={false}
-                                    popperClassName="react-datepicker-dark"
                                   />
                                 </div>
                               </div>
@@ -1052,20 +1045,13 @@ export default function DiariosOficiais() {
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data final</label>
                                 <div className="input-with-icon">
                                   <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                                  <LazyDatePicker
-                                    selected={customDateRange.end || null}
-                                    onChange={(date: Date | null) => setCustomDateRange({...customDateRange, end: date || undefined})}
-                                    selectsEnd
-                                    startDate={customDateRange.start}
-                                    endDate={customDateRange.end}
-                                    minDate={customDateRange.start}
-                                    maxDate={new Date()}
-                                    placeholderText="Selecione a data final"
+                                  <input
+                                    type="date"
+                                    value={customDateRange.end ? customDateRange.end.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value ? new Date(e.target.value) : undefined})}
+                                    min={customDateRange.start ? customDateRange.start.toISOString().split('T')[0] : ''}
+                                    max={new Date().toISOString().split('T')[0]}
                                     className="input-standard text-base w-full"
-                                    dateFormat="dd/MM/yyyy"
-                                    locale="pt-BR"
-                                    showPopperArrow={false}
-                                    popperClassName="react-datepicker-dark"
                                   />
                                 </div>
                               </div>
@@ -1198,7 +1184,7 @@ export default function DiariosOficiais() {
 
           {/* Monitorar Tab */}
           {activeTab === 'monitorar' && (
-            <div className="space-y-6">
+            <div className="space-y-6 fade-in">
               {/* Header com botão de alerta rápido */}
               <div className="flex items-center justify-between">
                 <div>
@@ -1556,7 +1542,7 @@ export default function DiariosOficiais() {
 
           {/* Navegar Tab */}
           {activeTab === 'navegar' && (
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-4 sm:space-y-6 fade-in">
               {/* Header com botão fixo */}
               <div className="flex items-center justify-between">
                 <div>
@@ -1693,17 +1679,12 @@ export default function DiariosOficiais() {
                     <div className="bg-white/5 border border-white/20 rounded-xl p-4 sm:p-6">
                       <div className="input-with-icon">
                         <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                        <LazyDatePicker
-                          selected={selectedDate ? new Date(selectedDate) : null}
-                          onChange={(date: Date | null) => setSelectedDate(date ? date.toISOString().split('T')[0] : '')}
-                          dateFormat="dd/MM/yyyy"
-                          placeholderText="Selecione uma data"
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          max={new Date().toISOString().split('T')[0]}
                           className="input-standard text-xs w-full"
-                          locale="pt-BR"
-                          maxDate={new Date()}
-                          isClearable
-                          wrapperClassName="w-full"
-                          popperClassName="react-datepicker-dark"
                         />
                       </div>
                     </div>

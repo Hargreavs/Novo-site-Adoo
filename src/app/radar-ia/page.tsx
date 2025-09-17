@@ -264,7 +264,16 @@ export default function RadarIA() {
     selectedTiposNorma: selectedTiposNorma.length
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showSpotlight, setShowSpotlight] = useState(false);
 
+  // Função para ativar spotlight nos contextos
+  const handleCreateMonitoringClick = () => {
+    setShowSpotlight(true);
+    // Remover spotlight após 5 segundos
+    setTimeout(() => {
+      setShowSpotlight(false);
+    }, 5000);
+  };
 
   // Funções para localStorage
   const getLastSeenCount = (monitoringId: string): number => {
@@ -845,18 +854,9 @@ export default function RadarIA() {
           <div className="mb-12 fade-in-delay-3">
             <div className="mb-8">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className="text-xl font-bold text-white">
                   Escolha o contexto para monitorar
                 </h2>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem('radarOnboarding');
-                    window.location.reload();
-                  }}
-                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  Refazer tour
-                </button>
               </div>
             </div>
             <div id="context-cards-container" className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -865,7 +865,9 @@ export default function RadarIA() {
                   key={context.id}
                   id={`context-card-${context.id}`}
                   onClick={() => handleContextClick(context.id)}
-                  className="relative bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 cursor-pointer hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)] group"
+                  className={`relative bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 cursor-pointer hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)] group ${
+                    showSpotlight ? 'animate-pulse ring-2 ring-blue-400/40 shadow-[0_0_20px_rgba(59,130,246,0.2)]' : ''
+                  }`}
                   style={{ animationDelay: `${0.4 + index * 0.1}s` }}
                 >
                   <div className="text-center">
@@ -1315,7 +1317,9 @@ export default function RadarIA() {
           {/* Monitoramentos Ativos */}
           <div className="mb-12 fade-in-delay-3">
             <RevealWrapper>
-              <h2 className="text-2xl font-bold text-white mb-6">Monitoramentos Ativos</h2>
+              {monitorings.length > 0 && (
+                <h2 className="text-xl font-bold text-white mb-6">Monitoramentos Ativos</h2>
+              )}
               {monitorings.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
@@ -1326,7 +1330,7 @@ export default function RadarIA() {
                   <h3 className="text-lg font-medium text-white mb-2">Nenhum monitoramento ativo</h3>
                   <p className="text-gray-400 mb-6">Crie seu primeiro monitoramento para começar a receber alertas</p>
                   <button
-                    onClick={() => setShowForm(true)}
+                    onClick={handleCreateMonitoringClick}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                   >
                     Criar Monitoramento

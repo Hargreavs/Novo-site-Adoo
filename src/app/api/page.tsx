@@ -74,7 +74,7 @@ function NavigationMenu({ isModalOpen }: { isModalOpen: boolean }) {
   if (isModalOpen) return null; // Hide menu if modal is open
 
   return (
-    <div className="sticky top-24 z-40 py-4 mb-8">
+    <div className="sticky top-32 z-40 py-6 mb-8">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <RevealWrapper delay={100}>
           <div className="flex flex-wrap gap-2 justify-center">
