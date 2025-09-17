@@ -21,6 +21,10 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [dropdownWidth, setDropdownWidth] = useState(0);
+  const [mobileDropdownWidth, setMobileDropdownWidth] = useState(0);
+  const dropdownRef = useRef<HTMLButtonElement>(null);
+  const mobileDropdownRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,6 +35,18 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Medir largura do dropdown para ajustar padding do input
+  useEffect(() => {
+    if (dropdownRef.current) {
+      const width = dropdownRef.current.offsetWidth;
+      setDropdownWidth(width);
+    }
+    if (mobileDropdownRef.current) {
+      const width = mobileDropdownRef.current.offsetWidth;
+      setMobileDropdownWidth(width);
+    }
+  }, [searchType, showDropdown]);
 
   // Carregar busca salva do localStorage
   useEffect(() => {
@@ -268,6 +284,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                 {/* Dropdown de filtro customizado */}
                 <div className="absolute left-0 top-0 z-10 dropdown-container">
                   <button
+                    ref={dropdownRef}
                     type="button"
                     onClick={() => setShowDropdown(!showDropdown)}
                     className="h-10 px-3 pr-6 bg-white/10 border border-white/20 rounded-l-full focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 text-white text-sm font-medium cursor-pointer backdrop-blur-sm hover:bg-white/15 flex items-center whitespace-nowrap"
@@ -310,7 +327,8 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                     onFocus={handleInputFocus}
                     onBlur={() => setTimeout(closeSuggestions, 200)}
                     placeholder="Digite nome, CPF, processo ou termo..."
-                    className="w-full h-10 pl-28 pr-16 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-sm backdrop-blur-sm"
+                    className="w-full h-10 pr-16 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-sm backdrop-blur-sm"
+                    style={{ paddingLeft: `${Math.max(112, dropdownWidth + 8)}px` }}
                     autoComplete="off"
                     role="combobox"
                     aria-expanded={showSuggestions}
@@ -472,6 +490,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                 {/* Dropdown de filtro customizado mobile */}
                 <div className="absolute left-0 top-0 z-10 dropdown-container">
                     <button
+                      ref={mobileDropdownRef}
                       type="button"
                       onClick={() => setShowDropdown(!showDropdown)}
                       className="h-10 px-2 pr-5 bg-white/10 border border-white/20 rounded-l-full focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 text-white text-xs font-medium cursor-pointer backdrop-blur-sm hover:bg-white/15 flex items-center whitespace-nowrap"
@@ -514,7 +533,8 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                     onFocus={handleInputFocus}
                     onBlur={() => setTimeout(closeSuggestions, 200)}
                     placeholder="Digite nome, CPF, processo ou termo..."
-                    className="w-full h-10 pl-20 pr-12 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-xs backdrop-blur-sm"
+                    className="w-full h-10 pr-12 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-xs backdrop-blur-sm"
+                    style={{ paddingLeft: `${Math.max(80, mobileDropdownWidth + 6)}px` }}
                     autoComplete="off"
                     role="combobox"
                     aria-expanded={showSuggestions}
