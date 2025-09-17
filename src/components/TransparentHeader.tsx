@@ -116,13 +116,13 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
     localStorage.setItem('globalSearch', searchTerm);
     localStorage.setItem('searchType', searchType);
 
-    // Navegar para página de resultados com parâmetros
+    // Navegar para página de explorar com parâmetros
     const params = new URLSearchParams({
       q: searchTerm,
       type: searchType
     });
     
-    router.push(`/resultados?${params.toString()}`);
+    router.push(`/explorar?${params.toString()}`);
   };
 
   // Funções auxiliares para dropdown customizado
@@ -454,14 +454,14 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
               Radar IA
             </Link>
             <Link 
-              href="/resultados" 
+              href="/explorar" 
               className={`text-sm font-medium leading-5 transition-colors duration-200 ${
-                isActive('resultados') 
+                isActive('explorar') 
                   ? 'text-blue-400' 
                   : 'text-white hover:text-blue-400'
               }`}
             >
-              Resultados
+              Explorar
             </Link>
             <Link 
               href="/api" 
@@ -630,15 +630,15 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
               Radar IA
             </Link>
             <Link 
-              href="/resultados" 
+              href="/explorar" 
               className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                isActive('resultados') 
+                isActive('explorar') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Resultados
+              Explorar
             </Link>
             <Link 
               href="/api" 
