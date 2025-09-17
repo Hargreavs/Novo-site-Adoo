@@ -1,8 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const AnimatedBackground = () => {
+  const [particles, setParticles] = useState<Array<{left: number, top: number, delay: number}>>([]);
+
+  useEffect(() => {
+    // Gerar posições e delays apenas no cliente
+    const generatedParticles = [...Array(20)].map(() => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 5
+    }));
+    setParticles(generatedParticles);
+  }, []);
   return (
     <>
       {/* Blobs animados */}
@@ -107,14 +118,14 @@ const AnimatedBackground = () => {
 
       {/* Partículas flutuantes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {particles.map((particle, i) => (
           <div
             key={i}
             className={`absolute w-1 h-1 bg-white/20 rounded-full animate-particle-${(i % 4) + 1}`}
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
+              animationDelay: `${particle.delay}s`,
             }}
           />
         ))}

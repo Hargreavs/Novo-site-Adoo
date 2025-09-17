@@ -3,17 +3,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import EciooLogo from '@/components/EciooLogo';
-import RegisterModal from '@/components/RegisterModal';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 
 interface TransparentHeaderProps {
   currentPage?: string;
+  onTrialClick?: () => void;
 }
 
-export default function TransparentHeader({ currentPage = '' }: TransparentHeaderProps) {
+export default function TransparentHeader({ currentPage = '', onTrialClick }: TransparentHeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,6 +43,13 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
     return currentPage === path;
   };
 
+  const handleTrialClick = () => {
+    console.log('Header trial button clicked');
+    if (onTrialClick) {
+      onTrialClick();
+    }
+  };
+
   return (
     <header 
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
@@ -52,7 +58,8 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
           : 'backdrop-blur-none bg-transparent border-b border-transparent'
       }`}
     >
-      <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Global">
+        <div className="flex items-center justify-between py-6">
         <div className="flex lg:flex-1">
           <Link href="/" className="-m-1.5 p-1.5">
             <span className="sr-only">ecioo</span>
@@ -73,20 +80,20 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
         </div>
-        <div className="hidden lg:flex lg:gap-x-12">
+        <div className="hidden lg:flex lg:gap-x-8">
           <Link 
             href="/" 
-            className={`text-base font-semibold leading-6 transition-colors duration-200 ${
+            className={`text-sm font-medium leading-5 transition-colors duration-200 ${
               isActive('') 
                 ? 'text-blue-400' 
                 : 'text-white hover:text-blue-400'
             }`}
           >
-            Apresentação
+            Para você
           </Link>
           <Link 
             href="/diarios-oficiais" 
-            className={`text-base font-semibold leading-6 transition-colors duration-200 ${
+            className={`text-sm font-medium leading-5 transition-colors duration-200 ${
               isActive('diarios-oficiais') 
                 ? 'text-blue-400' 
                 : 'text-white hover:text-blue-400'
@@ -96,7 +103,7 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
           </Link>
           <Link 
             href="/radar-ia" 
-            className={`text-base font-semibold leading-6 transition-colors duration-200 ${
+            className={`text-sm font-medium leading-5 transition-colors duration-200 ${
               isActive('radar-ia') 
                 ? 'text-blue-400' 
                 : 'text-white hover:text-blue-400'
@@ -106,7 +113,7 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
           </Link>
           <Link 
             href="/api" 
-            className={`text-base font-semibold leading-6 transition-colors duration-200 ${
+            className={`text-sm font-medium leading-5 transition-colors duration-200 ${
               isActive('api') 
                 ? 'text-blue-400' 
                 : 'text-white hover:text-blue-400'
@@ -115,16 +122,17 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
             API
           </Link>
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:space-x-4">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:space-x-6">
           <button
-            onClick={() => setIsRegisterModalOpen(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            onClick={handleTrialClick}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Iniciar teste gratuito
           </button>
-          <a href="#" className="cta-secondary text-base font-semibold leading-6 text-white hover:text-blue-400">
+          <a href="#" className="cta-secondary text-sm font-medium leading-5 text-white hover:text-blue-400">
             Entrar <span aria-hidden="true">→</span>
           </a>
+        </div>
         </div>
       </nav>
 
@@ -134,21 +142,21 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
           id="mobile-menu"
           className="lg:hidden mobile-menu-container"
         >
-          <div className="px-6 pb-6 pt-2 space-y-1 bg-black/80 backdrop-blur-md border-b border-white/10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 pt-2 space-y-1 bg-black/80 backdrop-blur-md border-b border-white/10">
             <Link 
               href="/" 
-              className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                 isActive('') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Apresentação
+              Para você
             </Link>
             <Link 
               href="/diarios-oficiais" 
-              className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                 isActive('diarios-oficiais') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -159,7 +167,7 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
             </Link>
             <Link 
               href="/radar-ia" 
-              className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                 isActive('radar-ia') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -170,7 +178,7 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
             </Link>
             <Link 
               href="/api" 
-              className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                 isActive('api') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -182,17 +190,17 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
             <div className="pt-4 border-t border-white/10 space-y-2">
               <a 
                 href="#" 
-                className="block px-3 py-2 text-base font-semibold text-white hover:text-blue-400 transition-colors duration-200"
+                className="block px-3 py-2 text-sm font-medium text-white hover:text-blue-400 transition-colors duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Entrar <span aria-hidden="true">→</span>
               </a>
               <button
                 onClick={() => {
-                  setIsRegisterModalOpen(true);
+                  handleTrialClick();
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
               >
                 Iniciar teste gratuito
               </button>
@@ -201,11 +209,6 @@ export default function TransparentHeader({ currentPage = '' }: TransparentHeade
         </div>
       )}
 
-      {/* Register Modal */}
-      <RegisterModal 
-        isOpen={isRegisterModalOpen} 
-        onClose={() => setIsRegisterModalOpen(false)} 
-      />
     </header>
   );
 }

@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import TransparentHeader from "@/components/TransparentHeader";
 import RevealWrapper from "@/components/RevealWrapper";
-import AnimatedBackground from "@/components/ui/AnimatedBackground";
+import TestModal from "@/components/TestModal";
+
+// Lazy load heavy components
+const AnimatedBackground = lazy(() => import("@/components/ui/AnimatedBackground"));
 import { 
   CodeBracketIcon, 
   DocumentTextIcon, 
@@ -120,6 +123,7 @@ function NavigationMenu({ isModalOpen }: { isModalOpen: boolean }) {
 
 export default function API() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -201,59 +205,62 @@ export default function API() {
 
   return (
     <div className="bg-transparent min-h-screen">
-      <TransparentHeader currentPage="api" />
+      <TransparentHeader 
+        currentPage="api" 
+        onTrialClick={() => setIsTestModalOpen(true)} 
+      />
 
       {/* Hero Section */}
       <section className="relative isolate px-6 pt-14 lg:px-8 overflow-hidden">
         {/* Background animado */}
-        <AnimatedBackground />
+        <Suspense fallback={<div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20"></div>}>
+          <AnimatedBackground />
+        </Suspense>
         
         <div className="relative z-10 mx-auto max-w-6xl py-32 sm:py-48 lg:py-56">
-          <RevealWrapper delay={100}>
-            <div className="text-center">
-              <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tight fade-in-delay-1">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>API de Integração</span>
-              </h1>
-              <p className="mt-3 text-base text-gray-300 max-w-3xl mx-auto sm:text-lg sm:mt-4 fade-in-delay-2">
-                Integre nossos serviços de diários oficiais diretamente em seus sistemas com nossa API robusta, bem documentada e de alta performance
-              </p>
-              
-              {/* CTA Buttons */}
-              <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <button
-                  onClick={() => {
-                    const element = document.getElementById('comecar');
-                    if (element) {
-                      window.scrollTo({
-                        top: element.offsetTop - 120,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }}
-                  className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <PlayIcon className="w-4 h-4 mr-2" />
-                  Começar Agora
-                  <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button
-                  onClick={() => {
-                    const element = document.getElementById('referencia-api');
-                    if (element) {
-                      window.scrollTo({
-                        top: element.offsetTop - 120,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }}
-                  className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-300 border border-gray-600 rounded-lg hover:text-white hover:border-gray-400 transition-all duration-200"
-                >
-                  <DocumentTextIcon className="w-4 h-4 mr-2" />
-                  Ver Documentação
-                </button>
-              </div>
+          <div className="text-center">
+            <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tight fade-in-delay-1">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>API de Integração</span>
+            </h1>
+            <p className="mt-3 text-base text-gray-300 max-w-3xl mx-auto sm:text-lg sm:mt-4 fade-in-delay-2">
+              Integre nossos serviços de diários oficiais diretamente em seus sistemas com nossa API robusta, bem documentada e de alta performance
+            </p>
+            
+            {/* CTA Buttons */}
+            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button
+                onClick={() => {
+                  const element = document.getElementById('comecar');
+                  if (element) {
+                    window.scrollTo({
+                      top: element.offsetTop - 120,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <PlayIcon className="w-4 h-4 mr-2" />
+                Começar Agora
+                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button
+                onClick={() => {
+                  const element = document.getElementById('referencia-api');
+                  if (element) {
+                    window.scrollTo({
+                      top: element.offsetTop - 120,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+                className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-300 border border-gray-600 rounded-lg hover:text-white hover:border-gray-400 transition-all duration-200"
+              >
+                <DocumentTextIcon className="w-4 h-4 mr-2" />
+                Ver Documentação
+              </button>
             </div>
-          </RevealWrapper>
+          </div>
         </div>
       </section>
 
@@ -274,56 +281,69 @@ export default function API() {
             </div>
           </RevealWrapper>
           
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-    {
-      icon: CodeBracketIcon,
-                title: 'API REST Completa',
-                description: 'Interface REST completa e intuitiva para integração com seus sistemas existentes.',
-                color: 'from-blue-500 to-cyan-500'
-    },
-    {
-      icon: DocumentTextIcon,
-                title: 'Documentação Interativa',
-                description: 'Documentação detalhada com exemplos práticos, SDKs e playground interativo.',
-                color: 'from-purple-500 to-pink-500'
-    },
-    {
-      icon: CloudIcon,
-                title: 'Notificações em Tempo Real',
-                description: 'Receba notificações instantâneas sobre publicações e atualizações nos diários.',
-                color: 'from-green-500 to-emerald-500'
-    },
-    {
-      icon: ShieldCheckIcon,
-                title: 'Segurança Avançada',
-                description: 'API Keys, OAuth2, rate limiting e criptografia end-to-end para máxima segurança.',
-                color: 'from-red-500 to-orange-500'
-              },
-              {
-                icon: RocketLaunchIcon,
-                title: 'Alta Performance',
-                description: 'Infraestrutura otimizada para garantir resposta rápida e disponibilidade 99.9%.',
-                color: 'from-yellow-500 to-orange-500'
-              },
-              {
-                icon: CpuChipIcon,
-                title: 'SDKs Múltiplas Linguagens',
-                description: 'SDKs oficiais para JavaScript, Python, PHP, Java e outras linguagens populares.',
-                color: 'from-indigo-500 to-purple-500'
-              }
-            ].map((feature, index) => (
-              <RevealWrapper key={feature.title} delay={100 + index * 100}>
-                <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-[20px] p-8 hover:bg-white/[0.05] transition-all duration-300 h-80 flex flex-col">
-                  <div className={`inline-flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-r ${feature.color} mb-6`}>
-                    <feature.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-4">{feature.title}</h3>
-                  <p className="text-gray-300 leading-relaxed flex-1">{feature.description}</p>
+          <RevealWrapper>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <CodeBracketIcon className="w-6 h-6 text-white" />
                 </div>
-              </RevealWrapper>
-            ))}
-          </div>
+                <h3 className="text-xl font-semibold text-white mb-3">API REST Completa</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Interface REST completa e intuitiva para integração com seus sistemas existentes.
+                </p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <DocumentTextIcon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-3">Documentação Interativa</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Documentação detalhada com exemplos práticos, SDKs e playground interativo.
+                </p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <CloudIcon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-3">Notificações em Tempo Real</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Receba notificações instantâneas sobre publicações e atualizações nos diários.
+                </p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <ShieldCheckIcon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-3">Segurança Avançada</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  API Keys, OAuth2, rate limiting e criptografia end-to-end para máxima segurança.
+                </p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <RocketLaunchIcon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-3">Alta Performance</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Infraestrutura otimizada para garantir resposta rápida e disponibilidade 99.9%.
+                </p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <CpuChipIcon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-3">SDKs Múltiplas Linguagens</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  SDKs oficiais para JavaScript, Python, PHP, Java e outras linguagens populares.
+                </p>
+              </div>
+            </div>
+          </RevealWrapper>
         </div>
       </AnimatedSection>
 
@@ -1257,6 +1277,12 @@ Authorization: Bearer sua-api-key
           </div>
         </AnimatedSection>
       )}
+
+      {/* Test Modal */}
+      <TestModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+      />
 
     </div>
   );

@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import TransparentHeader from "@/components/TransparentHeader";
 import RevealWrapper from "@/components/RevealWrapper";
-import GuidedOnboarding from "@/components/onboarding/GuidedOnboarding";
 import RegisterModal from "@/components/RegisterModal";
+import TestModal from "@/components/TestModal";
+
+// Lazy load heavy components
+const GuidedOnboarding = lazy(() => import("@/components/onboarding/GuidedOnboarding"));
 
 // Tipos para o sistema de monitoramento
 interface MockSummary {
@@ -78,6 +81,7 @@ interface Monitoring {
 export default function RadarIA() {
   const [selectedContext, setSelectedContext] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [monitorings, setMonitorings] = useState<Monitoring[]>([
     {
       id: '1',
@@ -820,7 +824,10 @@ export default function RadarIA() {
 
   return (
     <div className="bg-transparent min-h-screen">
-      <TransparentHeader currentPage="radar-ia" />
+      <TransparentHeader 
+        currentPage="radar-ia" 
+        onTrialClick={() => setIsTestModalOpen(true)} 
+      />
 
       <div className="relative isolate px-6 pt-14 lg:px-8 fade-in-up">
         {/* Hero Section */}
@@ -1307,129 +1314,108 @@ export default function RadarIA() {
 
           {/* Monitoramentos Ativos */}
           <div className="mb-12 fade-in-delay-3">
-            {monitorings.length > 0 ? (
-              <div className="space-y-3">
-                {monitorings.map((monitoring, index) => (
-                  <div
-                    key={monitoring.id}
-                    onClick={() => handleViewDetails(monitoring)}
-                    className={`relative bg-white/5 backdrop-blur-sm border rounded-xl p-4 transition-all duration-300 hover:transform hover:-translate-y-0.5 cursor-pointer ${
-                      monitoring.status === 'active' 
-                        ? 'border-green-400/30 hover:border-green-400/50 hover:shadow-[0_0_20px_rgba(34,197,94,0.1)]' 
-                        : 'border-gray-600/30 opacity-60 hover:opacity-80'
-                    }`}
-                    style={{ animationDelay: `${0.4 + index * 0.1}s` }}
+            <RevealWrapper>
+              <h2 className="text-2xl font-bold text-white mb-6">Monitoramentos Ativos</h2>
+              {monitorings.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-white mb-2">Nenhum monitoramento ativo</h3>
+                  <p className="text-gray-400 mb-6">Crie seu primeiro monitoramento para começar a receber alertas</p>
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      {/* Informações principais */}
-                      <div className="flex items-center flex-1 min-w-0">
-                        <div className="text-2xl mr-4 flex-shrink-0">{monitoring.contextIcon}</div>
-                        <div className="flex-1 min-w-0">
-                          {/* Título do contexto com badge */}
-                          <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-white truncate">{monitoring.contextName}</h3>
-                            {monitoring.newCount > 0 && (
-                              <div className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-lg border border-red-400/50">
-                                {monitoring.newCount > 99 ? '99+' : monitoring.newCount}
-                              </div>
+                    Criar Monitoramento
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {monitorings.map((monitoring) => (
+                    <div key={monitoring.id} className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-white">{monitoring.title}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              monitoring.isActive 
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                                : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                            }`}>
+                              {monitoring.isActive ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                          <p className="text-gray-300 text-sm mb-3">{monitoring.description}</p>
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30">
+                              {monitoring.contextType === 'concursos' ? 'Concursos' : 
+                               monitoring.contextType === 'licitacoes' ? 'Licitações' : 'Leis'}
+                            </span>
+                            <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30">
+                              {monitoring.selectedDiarios.length} diário(s)
+                            </span>
+                            {monitoring.selectedCategoria && (
+                              <span className="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded border border-orange-500/30">
+                                {monitoring.selectedCategoria}
+                              </span>
                             )}
                           </div>
-                          
-                          {/* Segunda linha: Status e Data */}
-                          <div className="flex items-center gap-4 mt-1">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              monitoring.status === 'active' 
-                                ? 'bg-green-500/20 text-green-400' 
-                                : 'bg-gray-500/20 text-gray-400'
-                            }`}>
-                              {monitoring.status === 'active' ? 'Ativo' : 'Inativo'}
-                            </span>
-                            <span className="text-sm text-gray-400">
-                              Criado em {new Date(monitoring.createdAt).toLocaleDateString('pt-BR')}
-                            </span>
-                          </div>
-                          
-                          {/* Terceira linha: Estatísticas */}
-                          <div className="flex items-center gap-6 mt-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-300">Total encontrado:</span>
-                              <span className="text-sm font-bold text-blue-400">{monitoring.totalFound}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-300">Última descoberta:</span>
-                              <span className="text-sm text-gray-400">
-                                {new Date(monitoring.lastFound).toLocaleDateString('pt-BR')}
-                              </span>
-                            </div>
+                          <div className="text-xs text-gray-400">
+                            Criado em {new Date(monitoring.createdAt).toLocaleDateString('pt-BR')}
                           </div>
                         </div>
-                      </div>
-
-                      {/* Ações com ícones minimalistas */}
-                      <div className="flex items-center gap-2 ml-4">
-                        <button
-                          onClick={() => handleViewDetails(monitoring)}
-                          className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
-                          title="Ver detalhes"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleEditMonitoring(monitoring)}
-                          className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-all duration-200"
-                          title="Editar"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => setMonitorings(prev => prev.filter(m => m.id !== monitoring.id))}
-                          className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
-                          title="Excluir"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => toggleMonitoringStatus(monitoring.id)}
-                          className={`p-2 rounded-lg transition-all duration-200 ${
-                            monitoring.status === 'active'
-                              ? 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
-                              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10'
-                          }`}
-                          title={monitoring.status === 'active' ? 'Desativar' : 'Ativar'}
-                        >
-                          {monitoring.status === 'active' ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => handleViewDetails(monitoring.id)}
+                            className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                            title="Ver detalhes"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </button>
+                          <button
+                            onClick={() => handleEditMonitoring(monitoring.id)}
+                            className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                          )}
-                        </button>
+                          </button>
+                          <button
+                            onClick={() => setMonitorings(prev => prev.filter(m => m.id !== monitoring.id))}
+                            className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                            title="Excluir"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => toggleMonitoringStatus(monitoring.id)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              monitoring.isActive
+                                ? 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
+                                : 'text-gray-400 hover:text-green-400 hover:bg-green-500/10'
+                            }`}
+                            title={monitoring.isActive ? 'Desativar' : 'Ativar'}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🎯</div>
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  Nenhum monitoramento ativo
-                </h3>
-                <p className="text-gray-400 mb-6">
-                  Crie seu primeiro monitoramento para começar a receber notificações
-                </p>
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </RevealWrapper>
           </div>
 
 
@@ -1947,47 +1933,55 @@ export default function RadarIA() {
         }}
       />
 
-      <GuidedOnboarding
-        hasExistingMonitorings={monitorings.length > 0}
-        onComplete={handleOnboardingComplete}
-        onCreateMonitoring={handleCreateMonitoring}
-        onClearSelections={handleClearSelections}
-        onCloseConfig={handleCloseConfig}
-        isConfigValid={useCallback(() => {
-          let isValid = false;
-          
-          if (selectedContext === 'concursos') {
-            isValid = selectedDiarios.length > 0;
-            console.log('Concursos validation:', { selectedDiarios: selectedDiarios.length, isValid });
-          } else if (selectedContext === 'licitacoes') {
-            const hasDiarios = selectedDiarios.length > 0;
-            const hasCategoria = selectedCategoria && selectedCategoria !== '';
-            const hasFonte = selectedFonte && selectedFonte !== '';
-            isValid = hasDiarios && hasCategoria && hasFonte;
+      <Suspense fallback={<div className="flex justify-center items-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div></div>}>
+        <GuidedOnboarding
+          hasExistingMonitorings={monitorings.length > 0}
+          onComplete={handleOnboardingComplete}
+          onCreateMonitoring={handleCreateMonitoring}
+          onClearSelections={handleClearSelections}
+          onCloseConfig={handleCloseConfig}
+          isConfigValid={useCallback(() => {
+            let isValid = false;
             
-            console.log('Licitações validation:', { 
-              hasDiarios, 
-              hasCategoria, 
-              hasFonte,
-              selectedCategoria: `"${selectedCategoria}"`,
-              selectedFonte: `"${selectedFonte}"`,
-              isValid 
-            });
-          } else if (selectedContext === 'leis') {
-            const hasDiarios = selectedDiarios.length > 0;
-            const hasTiposNorma = selectedTiposNorma.length > 0;
-            isValid = hasDiarios && hasTiposNorma;
+            if (selectedContext === 'concursos') {
+              isValid = selectedDiarios.length > 0;
+              console.log('Concursos validation:', { selectedDiarios: selectedDiarios.length, isValid });
+            } else if (selectedContext === 'licitacoes') {
+              const hasDiarios = selectedDiarios.length > 0;
+              const hasCategoria = selectedCategoria && selectedCategoria !== '';
+              const hasFonte = selectedFonte && selectedFonte !== '';
+              isValid = hasDiarios && hasCategoria && hasFonte;
+              
+              console.log('Licitações validation:', { 
+                hasDiarios, 
+                hasCategoria, 
+                hasFonte,
+                selectedCategoria: `"${selectedCategoria}"`,
+                selectedFonte: `"${selectedFonte}"`,
+                isValid 
+              });
+            } else if (selectedContext === 'leis') {
+              const hasDiarios = selectedDiarios.length > 0;
+              const hasTiposNorma = selectedTiposNorma.length > 0;
+              isValid = hasDiarios && hasTiposNorma;
+              
+              console.log('Leis validation:', { 
+                hasDiarios, 
+                hasTiposNorma,
+                selectedTiposNorma,
+                isValid 
+              });
+            }
             
-            console.log('Leis validation:', { 
-              hasDiarios, 
-              hasTiposNorma,
-              selectedTiposNorma,
-              isValid 
-            });
-          }
-          
-          return isValid;
-        }, [selectedContext, selectedDiarios, selectedCategoria, selectedFonte, selectedTiposNorma])}
+            return isValid;
+          }, [selectedContext, selectedDiarios, selectedCategoria, selectedFonte, selectedTiposNorma])}
+        />
+      </Suspense>
+
+      {/* Test Modal */}
+      <TestModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
       />
       
     </div>

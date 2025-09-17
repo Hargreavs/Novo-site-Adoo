@@ -1,14 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
-import { registerLocale } from 'react-datepicker';
-import { ptBR } from 'date-fns/locale';
-import 'react-datepicker/dist/react-datepicker.css';
 import RegisterModal from '@/components/RegisterModal';
-
-// Registrar o locale português brasileiro
-registerLocale('pt-BR', ptBR);
+import TransparentHeader from '@/components/TransparentHeader';
+import TestModal from '@/components/TestModal';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { 
   MagnifyingGlassIcon, 
   BellIcon, 
@@ -21,13 +18,13 @@ import {
   TrashIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline';
-import TransparentHeader from '@/components/TransparentHeader';
 
 export default function DiariosOficiais() {
   const [activeTab, setActiveTab] = useState('buscar');
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
   const [selectedDiarios, setSelectedDiarios] = useState<string[]>([]);
   const [searchPeriod, setSearchPeriod] = useState('7d');
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState({ start: undefined as Date | undefined, end: undefined as Date | undefined });
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{
@@ -765,7 +762,10 @@ export default function DiariosOficiais() {
 
   return (
     <div className="bg-transparent min-h-screen">
-      <TransparentHeader currentPage="diarios-oficiais" />
+      <TransparentHeader 
+        currentPage="diarios-oficiais" 
+        onTrialClick={() => setIsTestModalOpen(true)} 
+      />
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-8 sm:pt-28 sm:pb-12 md:pt-32 md:pb-16 lg:pt-36 fade-in-up">
@@ -813,7 +813,7 @@ export default function DiariosOficiais() {
             <div className="space-y-4 sm:space-y-6">
               {/* Header */}
               <div>
-                <h3 className="text-lg font-semibold text-white sm:text-xl">Buscar Publicações</h3>
+                <h3 className="text-base font-semibold text-white sm:text-lg">Buscar Publicações</h3>
                 <p className="text-sm text-gray-400 sm:text-base">Digite um termo e filtre por diários e período de publicação</p>
               </div>
 
@@ -1031,9 +1031,9 @@ export default function DiariosOficiais() {
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data inicial</label>
                                 <div className="input-with-icon">
                                   <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                                  <DatePicker
-                                    selected={customDateRange.start}
-                                    onChange={(date) => setCustomDateRange({...customDateRange, start: date || undefined})}
+                                  <LazyDatePicker
+                                    selected={customDateRange.start || null}
+                                    onChange={(date: Date | null) => setCustomDateRange({...customDateRange, start: date || undefined})}
                                     selectsStart
                                     startDate={customDateRange.start}
                                     endDate={customDateRange.end}
@@ -1052,9 +1052,9 @@ export default function DiariosOficiais() {
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data final</label>
                                 <div className="input-with-icon">
                                   <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                                  <DatePicker
-                                    selected={customDateRange.end}
-                                    onChange={(date) => setCustomDateRange({...customDateRange, end: date || undefined})}
+                                  <LazyDatePicker
+                                    selected={customDateRange.end || null}
+                                    onChange={(date: Date | null) => setCustomDateRange({...customDateRange, end: date || undefined})}
                                     selectsEnd
                                     startDate={customDateRange.start}
                                     endDate={customDateRange.end}
@@ -1112,7 +1112,7 @@ export default function DiariosOficiais() {
               {searchResults.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-4 sm:mb-6">
-                    <h3 className="text-lg font-semibold text-white sm:text-xl">
+                    <h3 className="text-base font-semibold text-white sm:text-lg">
                       Resultados ({searchResults.length})
                     </h3>
                     <button
@@ -1187,7 +1187,7 @@ export default function DiariosOficiais() {
               {searchResults.length === 0 && !isSearching && searchTerms.length > 0 && selectedDiarios.length > 0 && (
                 <div className="text-center py-8 sm:py-12">
                   <DocumentTextIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base font-semibold text-white mb-2 sm:text-lg">Nenhum resultado encontrado</h3>
+                  <h3 className="text-sm font-semibold text-white mb-2 sm:text-base">Nenhum resultado encontrado</h3>
                   <p className="text-sm text-gray-400">
                     Tente ampliar o período de busca, incluir mais diários ou usar termos diferentes.
                   </p>
@@ -1202,7 +1202,7 @@ export default function DiariosOficiais() {
               {/* Header com botão de alerta rápido */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white sm:text-xl">Monitoramentos</h3>
+                  <h3 className="text-base font-semibold text-white sm:text-lg">Monitoramentos</h3>
                   <p className="text-sm text-gray-400 sm:text-base">Gerencie seus alertas de palavras-chave</p>
                 </div>
                 {monitoramentos.length > 0 && (
@@ -1447,7 +1447,7 @@ export default function DiariosOficiais() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
-                              <h4 className="text-base font-semibold text-white sm:text-lg">
+                              <h4 className="text-sm font-semibold text-white sm:text-base">
                                 {monitoramento.terms.join(', ')}
                               </h4>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -1529,7 +1529,7 @@ export default function DiariosOficiais() {
                   !hasClickedCreateMonitor && (
                     <div className="text-center py-8 sm:py-12">
                       <BellIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                      <h4 className="text-base font-semibold text-white mb-2 sm:text-lg">Você ainda não possui monitoramento de termos cadastrado.</h4>
+                      <h4 className="text-sm font-semibold text-white mb-2 sm:text-base">Você ainda não possui monitoramento de termos cadastrado.</h4>
                       <p className="text-sm text-gray-400 mb-4">Crie alertas para acompanhar termos específicos nos diários oficiais.</p>
                       <button 
                         onClick={() => {
@@ -1560,7 +1560,7 @@ export default function DiariosOficiais() {
               {/* Header com botão fixo */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white sm:text-xl">Navegar Diários</h3>
+                  <h3 className="text-base font-semibold text-white sm:text-lg">Navegar Diários</h3>
                   <p className="text-sm text-gray-400 sm:text-base">Visualize e baixe edições oficiais</p>
                 </div>
               </div>
@@ -1693,9 +1693,9 @@ export default function DiariosOficiais() {
                     <div className="bg-white/5 border border-white/20 rounded-xl p-4 sm:p-6">
                       <div className="input-with-icon">
                         <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                        <DatePicker
+                        <LazyDatePicker
                           selected={selectedDate ? new Date(selectedDate) : null}
-                          onChange={(date) => setSelectedDate(date ? date.toISOString().split('T')[0] : '')}
+                          onChange={(date: Date | null) => setSelectedDate(date ? date.toISOString().split('T')[0] : '')}
                           dateFormat="dd/MM/yyyy"
                           placeholderText="Selecione uma data"
                           className="input-standard text-xs w-full"
@@ -1715,7 +1715,7 @@ export default function DiariosOficiais() {
               <div className="space-y-3 sm:space-y-4">
                 {selectedDiario ? (
                   <div className="space-y-3 sm:space-y-4">
-                    <h4 className="text-base font-semibold text-white sm:text-lg">
+                    <h4 className="text-sm font-semibold text-white sm:text-base">
                       Edições disponíveis - {diarios.find(d => d.id === selectedDiario)?.name}
                     </h4>
                     
@@ -1927,7 +1927,7 @@ export default function DiariosOficiais() {
                 ) : (
                   <div className="text-center py-8 sm:py-12">
                     <DocumentTextIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                    <h4 className="text-base font-semibold text-white mb-2 sm:text-lg">Selecione um diário oficial</h4>
+                    <h4 className="text-sm font-semibold text-white mb-2 sm:text-base">Selecione um diário oficial</h4>
                     <p className="text-xs text-gray-500 sm:text-sm">
                       Escolha um diário oficial acima para visualizar as edições disponíveis.
                     </p>
@@ -1959,7 +1959,7 @@ export default function DiariosOficiais() {
             <div className="p-4 sm:p-6 overflow-y-auto h-full">
               {selectedPublication && (
                 <div className="space-y-4">
-                  <h4 className="text-xl font-semibold text-white">{selectedPublication.title}</h4>
+                  <h4 className="text-base font-semibold text-white">{selectedPublication.title}</h4>
                   <div className="flex items-center gap-4 text-sm text-gray-400">
                     <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
                       {selectedPublication.source}
@@ -2041,7 +2041,7 @@ export default function DiariosOficiais() {
 
                   {/* Lista de Ocorrências */}
                   <div className="space-y-4">
-                    <h5 className="text-base font-semibold text-white">Últimas Ocorrências</h5>
+                    <h5 className="text-sm font-semibold text-white">Últimas Ocorrências</h5>
                     {Array.from({ length: selectedMonitor.occurrences }, (_, index) => (
                       <div
                         key={index}
@@ -2112,6 +2112,12 @@ export default function DiariosOficiais() {
             handleCreateMonitoramento();
           }
         }}
+      />
+
+      {/* Test Modal */}
+      <TestModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
       />
     </div>
   );

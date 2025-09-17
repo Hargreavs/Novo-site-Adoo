@@ -15,7 +15,7 @@ import RevealWrapper from '@/components/RevealWrapper';
 import Personas from '@/components/Personas';
 import TestimonialsCarousel from '@/components/TestimonialsCarousel';
 import BenefitsSection from '@/components/BenefitsSection';
-import SimpleRegisterModal from '@/components/SimpleRegisterModal';
+import TestModal from '@/components/TestModal';
 import ContactSalesModal from '@/components/ContactSalesModal';
 
 export default function Home() {
@@ -23,8 +23,16 @@ export default function Home() {
   const parallaxImageRef = useRef<HTMLDivElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
   const [trialForm, setTrialForm] = useState({ name: '', email: '' });
-  const [isSimpleRegisterModalOpen, setIsSimpleRegisterModalOpen] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [isContactSalesModalOpen, setIsContactSalesModalOpen] = useState(false);
+  
+  // Estados para busca
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Tudo');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
   const [showScrollCue, setShowScrollCue] = useState(true);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hoveredLine, setHoveredLine] = useState<string | null>(null);
@@ -32,8 +40,156 @@ export default function Home() {
   const [isHovering, setIsHovering] = useState(false);
 
   const handleTrialSubmit = () => {
-    if (trialForm.name && trialForm.email) {
-      setIsSimpleRegisterModalOpen(true);
+    console.log('Button clicked - opening modal');
+    setIsTestModalOpen(true);
+  };
+
+  const handlePricingTrialSubmit = () => {
+    console.log('Pricing button clicked - opening modal with pre-filled data');
+    setIsTestModalOpen(true);
+  };
+
+  // Cleanup do timer
+  useEffect(() => {
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [debounceTimer]);
+
+  // Sugestões mockadas para autocomplete
+  const mockSuggestions = [
+    'concurso público',
+    'concurso TRT',
+    'concurso federal',
+    'concurso estadual',
+    'concurso municipal',
+    'licitação pública',
+    'licitação federal',
+    'licitação estadual',
+    'licitação municipal',
+    'edital de concurso',
+    'edital de licitação',
+    'processo administrativo',
+    'processo judicial',
+    'STF',
+    'STJ',
+    'TST',
+    'TRT',
+    'Prefeitura de São Paulo',
+    'Governo Federal',
+    'Assembleia Legislativa'
+  ];
+
+  // Função para filtrar sugestões com debounce
+  const filterSuggestions = (term: string) => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
+    const timer = setTimeout(() => {
+      if (term.length >= 2) {
+        const filtered = mockSuggestions
+          .filter(suggestion => 
+            suggestion.toLowerCase().includes(term.toLowerCase())
+          )
+          .slice(0, 6);
+        setSuggestions(filtered);
+        setShowSuggestions(filtered.length > 0);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 150);
+
+    setDebounceTimer(timer);
+  };
+
+  // Função para lidar com mudança no input
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    setSelectedIndex(-1);
+    filterSuggestions(value);
+  };
+
+  // Função para lidar com foco no input
+  const handleInputFocus = () => {
+    if (searchTerm.length >= 2 && suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
+  // Função para selecionar sugestão
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchTerm(suggestion);
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+    // Executar busca automaticamente
+    handleSearch();
+  };
+
+  // Função para fechar sugestões
+  const closeSuggestions = () => {
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+  };
+
+  // Função para limpar input
+  const clearInput = () => {
+    setSearchTerm('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+  };
+
+  // Função para navegação por teclado
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+          handleSuggestionClick(suggestions[selectedIndex]);
+        } else {
+          handleSearch();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        closeSuggestions();
+        break;
+    }
+  };
+
+  // Função de busca
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      console.log('Buscando por:', searchTerm);
+      setShowSuggestions(false);
+      // Aqui você pode implementar a lógica de busca
+      // Por exemplo, redirecionar para a página de resultados
+    }
+  };
+
+  // Função para lidar com Enter
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
   const [selectedContext, setSelectedContext] = useState<string>('concurso');
@@ -490,15 +646,6 @@ export default function Home() {
     }, 100);
   };
 
-  // Função para gerar descrições dinâmicas do contexto
-  const getContextDescription = (context: string) => {
-    const descriptions: { [key: string]: string } = {
-      'concurso': 'Novos editais de concurso público',
-      'licitacao': 'Novas licitações e pregões',
-      'legislacao': 'Novas leis e decretos'
-    };
-    return descriptions[context] || '';
-  };
 
   const features = [
     {
@@ -526,7 +673,10 @@ export default function Home() {
 
   return (
     <div className="bg-transparent">
-      <TransparentHeader currentPage="" />
+      <TransparentHeader 
+        currentPage="" 
+        onTrialClick={() => setIsTestModalOpen(true)} 
+      />
 
       {/* Hero Section */}
       <section ref={heroRef} className="relative isolate overflow-hidden h-screen flex items-center justify-center">
@@ -796,74 +946,126 @@ export default function Home() {
               </div>
               <div className="text-center max-w-4xl mx-auto space-y-0 sm:space-y-1 fade-in-delay-2">
                 <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tight">
-                  Deixe a IA monitorar as <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>publicações</span> por você
+                  Pesquise em todos os <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Diários Oficiais</span> do Brasil
                 </h1>
                 <p className="text-xs leading-5 text-gray-300 sm:text-sm sm:leading-6 md:text-base max-w-xl mx-auto">
-                  Receba só o que importa, sem perder horas filtrando publicações.
+                  Digite um termo e encontre publicações em mais de 2.500 diários oficiais, em todas as esferas e poderes.
                 </p>
                 
-                {/* Card central premium estilo Apple/Linear */}
-                <div className="mt-10 max-w-lg mx-auto sm:mt-12">
-                  <div className="radar-card rounded-2xl p-2 sm:p-3 md:p-4 lg:p-6 mx-1 sm:mx-0" style={{ pointerEvents: 'auto' }}>
-                    {/* Cabeçalho com hierarquia clara */}
-                    <div className="radar-header mb-2 sm:mb-3">
-                      <div className="radar-title-row">
-                        <h3 className="radar-title-main">Radar IA</h3>
-                        <span className="new-chip-small">Novo ✨</span>
-                      </div>
-                      <p className="radar-subtitle-secondary">
-                        Configure seu monitoramento inteligente
-                      </p>
+                {/* Componentes Soltos na Hero Section - Estilo Jusbrasil */}
+                <div className="mt-10 max-w-4xl mx-auto sm:mt-12 space-y-6" style={{ pointerEvents: 'auto' }}>
+                  {/* Campo de Busca Principal Integrado - Solto */}
+                  <div className="relative max-w-2xl mx-auto">
+                    <div className="relative w-full">
+                      <input
+                        type="text"
+                        placeholder="Digite nome, CPF, processo ou termo..."
+                        value={searchTerm}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        onFocus={handleInputFocus}
+                        onBlur={() => setTimeout(closeSuggestions, 200)}
+                        className="w-full pl-4 pr-24 py-4 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 transition-all duration-200 text-base sm:text-lg"
+                        style={{ pointerEvents: 'auto' }}
+                        autoComplete="off"
+                        role="combobox"
+                        aria-expanded={showSuggestions}
+                        aria-haspopup="listbox"
+                        aria-autocomplete="list"
+                      />
+                      
+                      {/* Botão de Limpar */}
+                      {searchTerm && (
+                        <button 
+                          onClick={clearInput}
+                          className="absolute top-1/2 right-14 transform -translate-y-1/2 w-7 h-7 bg-white/10 hover:bg-white/20 rounded-full transition-all duration-200 group flex items-center justify-center"
+                          style={{ pointerEvents: 'auto' }}
+                          type="button"
+                          aria-label="Limpar busca"
+                        >
+                          <svg className="h-3 w-3 text-gray-300 group-hover:text-white transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                      
+                      {/* Botão de Busca Discreto - Estilo Escavador */}
+                      <button 
+                        onClick={handleSearch}
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full transition-all duration-200 group flex items-center justify-center"
+                        style={{ pointerEvents: 'auto' }}
+                        type="button"
+                        aria-label="Buscar"
+                      >
+                        <svg className="h-4 w-4 text-gray-300 group-hover:text-white group-hover:scale-110 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </button>
                     </div>
                     
-                    <div className="space-y-2 sm:space-y-2 md:space-y-3">
-                      {/* Campo Contexto com ícone */}
-                      <div className="select-container">
-                        <label htmlFor="contexto" className="text-sm sm:text-base">
-                          Contexto
-                        </label>
-                        <div className="select-wrapper">
-                          <span className="select-icon">📌</span>
-                          <select 
-                            id="contexto" 
-                            className="rotating-placeholder text-sm sm:text-base" 
-                            value={selectedContext}
-                            onChange={(e) => setSelectedContext(e.target.value)}
-                            style={{ pointerEvents: 'auto' }}
+                    {/* Menu Suspenso de Sugestões */}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div 
+                        className="absolute top-full left-0 right-0 mt-2 bg-gray-900/90 backdrop-blur-sm border border-white/30 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto"
+                        role="listbox"
+                        aria-label="Sugestões de busca"
+                      >
+                        {suggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className={`w-full px-4 py-3 text-left text-white transition-all duration-200 flex items-center gap-3 first:rounded-t-2xl last:rounded-b-2xl ${
+                              selectedIndex === index 
+                                ? 'bg-blue-500/30 border-l-2 border-blue-400' 
+                                : 'hover:bg-blue-500/20'
+                            }`}
+                            role="option"
+                            aria-selected={selectedIndex === index}
                           >
-                            <option value="concurso">Concurso público</option>
-                            <option value="licitacao">Licitação</option>
-                            <option value="legislacao">Legislação</option>
-                          </select>
-                        </div>
-                        
-                        {/* Descrição dinâmica */}
-                        <p className="text-sm text-gray-300 italic mt-2 text-left">
-                          {getContextDescription(selectedContext)}
-                        </p>
+                            <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <span className="flex-1">
+                              {suggestion.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) => 
+                                part.toLowerCase() === searchTerm.toLowerCase() ? (
+                                  <strong key={i} className="text-blue-300">{part}</strong>
+                                ) : (
+                                  <span key={i}>{part}</span>
+                                )
+                              )}
+                            </span>
+                          </button>
+                        ))}
                       </div>
-                      
-                      {/* Botão principal premium */}
-                      <Link href="/radar-ia?onboarding=1" className="radar-button text-sm sm:text-base" style={{ pointerEvents: 'auto' }}>
-                        <svg className="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Ativar Radar IA grátis
-                      </Link>
-                      
-                      {/* CTA secundário */}
-                      <div className="w-full">
-                        <a href="#features" className="ghost-button text-sm sm:text-base w-full" style={{ pointerEvents: 'auto' }}>
-                          Saiba mais sobre o Radar IA
-                        </a>
-                      </div>
-                    </div>
+                    )}
                   </div>
                   
-                  {/* Texto de confiança */}
-                  <p className="mt-2 sm:mt-3 text-xs text-gray-400 text-center px-2">
-                    Já são mais de 40 mil usuários acompanhando concursos, licitações e atos oficiais com o Adoo.
-                  </p>
+                  {/* Categorias de Busca */}
+                  <div className="flex flex-wrap justify-center gap-3 mt-6" style={{ transform: 'translateZ(0)' }}>
+                    {['Tudo', 'Diários Oficiais', 'Processos'].map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => {
+                          console.log('Categoria selecionada:', category);
+                          setSelectedCategory(category);
+                        }}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer relative z-10 ${
+                          selectedCategory === category
+                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-blue-500/20 hover:border-blue-400 hover:text-white'
+                        }`}
+                        style={{ 
+                          pointerEvents: 'auto',
+                          willChange: 'auto'
+                        }}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1012,8 +1214,8 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
           <RevealWrapper delay={100}>
             <div className="mx-auto max-w-2xl lg:text-center">
-              <h1 className="text-2xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-3xl lg:text-4xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Preços</h1>
-              <p className="mt-3 mb-8 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+              <h1 className="text-xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-2xl lg:text-3xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Preços</h1>
+              <p className="mt-3 mb-8 text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
                 Experimente antes de você pagar
               </p>
             </div>
@@ -1051,9 +1253,8 @@ export default function Home() {
                     />
                   </div>
                   <button
-                    onClick={handleTrialSubmit}
-                    disabled={!trialForm.name || !trialForm.email}
-                    className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handlePricingTrialSubmit}
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
                     Iniciar teste gratuito
                   </button>
@@ -1402,8 +1603,8 @@ export default function Home() {
       <div id="testimonials" className="py-16 sm:py-24 lg:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-xl text-center mb-12 sm:mb-16">
-            <h1 className="text-2xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-3xl lg:text-4xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Depoimentos</h1>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+            <h1 className="text-xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-2xl lg:text-3xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Depoimentos</h1>
+            <p className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
               O que nossos clientes dizem
             </p>
           </div>
@@ -1440,17 +1641,14 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Simple Register Modal */}
-      <SimpleRegisterModal
-        isOpen={isSimpleRegisterModalOpen}
-        onClose={() => setIsSimpleRegisterModalOpen(false)}
-        onSuccess={() => {
-          setIsSimpleRegisterModalOpen(false);
-          // Marcar usuário como logado
-          localStorage.setItem('isLoggedIn', 'true');
-        }}
-        name={trialForm.name}
-        email={trialForm.email}
+      {/* Test Modal */}
+      <TestModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        preFilledData={trialForm.name && trialForm.email ? {
+          name: trialForm.name,
+          email: trialForm.email
+        } : undefined}
       />
 
       {/* Contact Sales Modal */}

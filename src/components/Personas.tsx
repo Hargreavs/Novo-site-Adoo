@@ -130,11 +130,12 @@ export default function Personas() {
         <div className="mx-auto max-w-2xl text-center mb-12 sm:mb-16">
           <h2
             id="personas-title"
-            className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl"
+            className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-2xl lg:text-3xl"
+            style={{ lineHeight: '1.2', paddingBottom: '2px' }}
           >
             Feito para quem não pode perder nenhuma publicação
           </h2>
-          <p className="mt-3 text-base leading-7 text-gray-300 sm:text-lg sm:leading-8">
+          <p className="mt-3 text-sm leading-7 text-gray-300 sm:text-base sm:leading-8">
             O Adoo atende empresários, profissionais do direito, concurseiros e
             jornalistas que precisam acompanhar os Diários Oficiais com rapidez
             e segurança.

@@ -103,8 +103,8 @@ export default function BenefitsSection() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8 relative">
         <RevealWrapper delay={0}>
           <header className="mb-12 text-center">
-            <h1 className="text-2xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-3xl lg:text-4xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Benefícios</h1>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+            <h1 className="text-xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-2xl lg:text-3xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Benefícios</h1>
+            <h2 className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
               Tudo que você precisa para acompanhar publicações com praticidade
             </h2>
           </header>
