@@ -278,8 +278,8 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
           </div>
           
           {/* Barra de busca global - Desktop */}
-          <div className="hidden lg:flex lg:flex-1 lg:justify-center lg:px-8">
-            <div className="relative w-full max-w-2xl">
+          <div className="hidden lg:flex lg:flex-1 lg:justify-center lg:px-4">
+            <div className="relative w-full max-w-lg">
               <form onSubmit={handleSearch} className="relative w-full">
                 {/* Dropdown de filtro customizado */}
                 <div className="absolute left-0 top-0 z-10 dropdown-container">
