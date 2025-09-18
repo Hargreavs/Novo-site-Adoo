@@ -268,18 +268,18 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
     >
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Global">
         {/* NÍVEL 1: Logo + Busca + Botões de Auth */}
-        <div className="flex items-center justify-between py-4">
+        <div className="flex items-center py-4">
           {/* Logo */}
-          <div className="flex lg:flex-1 lg:max-w-[200px]">
+          <div className="flex lg:max-w-[200px]">
             <Link href="/" className="-m-1 p-1">
               <span className="sr-only">ecioo</span>
               <EciooLogo className="h-8 w-24" />
             </Link>
           </div>
           
-            {/* Barra de busca global - Desktop */}
-            <div className="hidden lg:flex lg:flex-1 lg:justify-center lg:max-w-xl">
-            <div className="relative w-full">
+          {/* Barra de busca global - Desktop */}
+          <div className="hidden lg:flex lg:flex-1 lg:justify-center lg:px-8">
+            <div className="relative w-full max-w-2xl">
               <form onSubmit={handleSearch} className="relative w-full">
                 {/* Dropdown de filtro customizado */}
                 <div className="absolute left-0 top-0 z-10 dropdown-container">
@@ -391,7 +391,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
           </div>
 
           {/* Botões de autenticação */}
-          <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:space-x-3 lg:max-w-[300px]">
+          <div className="hidden lg:flex lg:items-center lg:space-x-3">
             <button
               onClick={handleTrialClick}
               className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
