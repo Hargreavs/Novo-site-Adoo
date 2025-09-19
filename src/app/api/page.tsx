@@ -275,14 +275,14 @@ export default function API() {
               <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 Tudo que você precisa
               </p>
-              <p className="mt-6 text-lg leading-8 text-gray-300">
+              <p className="mt-4 text-lg leading-8 text-gray-300">
                 Uma API completa e robusta para integração com diários oficiais.
               </p>
             </div>
           </RevealWrapper>
           
           <RevealWrapper>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <CodeBracketIcon className="w-6 h-6 text-white" />

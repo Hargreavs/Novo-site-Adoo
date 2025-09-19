@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import EciooLogo from '@/components/EciooLogo';
@@ -20,12 +20,22 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isSearching, setIsSearching] = useState(false);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
-  const [dropdownWidth, setDropdownWidth] = useState(0);
-  const [mobileDropdownWidth, setMobileDropdownWidth] = useState(0);
+  const [dropdownWidth, setDropdownWidth] = useState(80); // Valor padrão mais estável
+  const [mobileDropdownWidth, setMobileDropdownWidth] = useState(80); // Valor padrão mais estável
   const dropdownRef = useRef<HTMLButtonElement>(null);
   const mobileDropdownRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+
+  // Calcular padding do input de forma otimizada
+  const desktopInputPadding = useMemo(() => {
+    return Math.max(16, dropdownWidth + 16);
+  }, [dropdownWidth]);
+
+  const mobileInputPadding = useMemo(() => {
+    return Math.max(80, mobileDropdownWidth + 6);
+  }, [mobileDropdownWidth]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,25 +46,34 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Medir largura do dropdown para ajustar padding do input
+  // Carregar tipo de busca salvo do localStorage (não o termo)
   useEffect(() => {
+    const savedType = localStorage.getItem('searchType');
+    if (savedType) {
+      setSearchType(savedType);
+    }
+  }, []);
+
+  // Função estável para medir larguras
+  const measureWidths = useCallback(() => {
     if (dropdownRef.current) {
       const width = dropdownRef.current.offsetWidth;
-      setDropdownWidth(width);
+      if (width !== dropdownWidth) {
+        setDropdownWidth(width);
+      }
     }
     if (mobileDropdownRef.current) {
       const width = mobileDropdownRef.current.offsetWidth;
-      setMobileDropdownWidth(width);
+      if (width !== mobileDropdownWidth) {
+        setMobileDropdownWidth(width);
+      }
     }
-  }, [searchType, showDropdown]);
+  }, [dropdownWidth, mobileDropdownWidth]);
 
-  // Carregar busca salva do localStorage
-  useEffect(() => {
-    const savedSearch = localStorage.getItem('globalSearch');
-    const savedType = localStorage.getItem('searchType');
-    if (savedSearch) setSearchTerm(savedSearch);
-    if (savedType) setSearchType(savedType);
-  }, []);
+  // Medir largura do dropdown para ajustar padding do input
+  useLayoutEffect(() => {
+    measureWidths();
+  }, [searchType, showDropdown, measureWidths]);
 
   // Fechar menu mobile ao clicar fora
   useEffect(() => {
@@ -95,6 +114,15 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
     };
   }, [debounceTimer]);
 
+  // Cleanup adicional na desmontagem do componente
+  useEffect(() => {
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, []);
+
 
   const isActive = (path: string) => {
     if (path === '/' && currentPage === '') return true;
@@ -112,15 +140,26 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
     e.preventDefault();
     if (!searchTerm.trim()) return;
 
+    // Ativar loading
+    setIsSearching(true);
+
+    // Detectar se é "Rafael Ximenes" e sempre redirecionar para "tudo"
+    const isRafaelXimenes = searchTerm.toLowerCase().includes('rafael ximenes');
+    const finalSearchType = isRafaelXimenes ? 'tudo' : searchType;
+
     // Salvar busca no localStorage
     localStorage.setItem('globalSearch', searchTerm);
-    localStorage.setItem('searchType', searchType);
+    localStorage.setItem('searchType', finalSearchType);
 
     // Navegar para página de explorar com parâmetros
     const params = new URLSearchParams({
       q: searchTerm,
-      type: searchType
+      type: finalSearchType
     });
+    
+    // Limpar o campo imediatamente
+    setSearchTerm('');
+    setIsSearching(false);
     
     router.push(`/explorar?${params.toString()}`);
   };
@@ -144,6 +183,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
 
   // Sugestões mockadas para autocomplete
   const mockSuggestions = [
+    'Rafael Ximenes',
     'concurso público',
     'concurso TRT',
     'concurso federal',
@@ -219,12 +259,49 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
     setSelectedIndex(-1);
   };
 
+  // Função para destacar texto nas sugestões
+  const highlightText = (text: string, searchTerm: string) => {
+    if (!searchTerm.trim()) return text;
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <span key={index} className="text-blue-400 font-medium">{part}</span>
+      ) : part
+    );
+  };
+
   // Função para selecionar sugestão
   const handleSuggestionClick = (suggestion: string) => {
     setSearchTerm(suggestion);
     setSuggestions([]);
     setShowSuggestions(false);
     setSelectedIndex(-1);
+
+    // Ativar loading
+    setIsSearching(true);
+
+    // Detectar se é "Rafael Ximenes" e sempre redirecionar para "tudo"
+    const isRafaelXimenes = suggestion.toLowerCase().includes('rafael ximenes');
+    const finalSearchType = isRafaelXimenes ? 'tudo' : searchType;
+
+    // Salvar busca no localStorage
+    localStorage.setItem('globalSearch', suggestion);
+    localStorage.setItem('searchType', finalSearchType);
+
+    // Navegar para página de explorar com parâmetros
+    const params = new URLSearchParams({
+      q: suggestion,
+      type: finalSearchType
+    });
+    
+    // Limpar o campo imediatamente
+    setSearchTerm('');
+    setIsSearching(false);
+    
+    router.push(`/explorar?${params.toString()}`);
   };
 
   // Função para navegação por teclado
@@ -287,7 +364,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                     ref={dropdownRef}
                     type="button"
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="h-10 px-3 pr-6 bg-white/10 border border-white/20 rounded-l-full focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 text-white text-sm font-medium cursor-pointer backdrop-blur-sm hover:bg-white/15 flex items-center whitespace-nowrap"
+                    className="h-10 px-3 pr-6 bg-white/10 border border-white/20 rounded-l-full focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 text-white text-base font-medium cursor-pointer backdrop-blur-sm hover:bg-white/15 flex items-center whitespace-nowrap"
                     style={{ minWidth: 'fit-content' }}
                   >
                     {getSelectedFilterLabel()}
@@ -304,7 +381,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                           key={option.value}
                           type="button"
                           onClick={() => handleFilterSelect(option.value)}
-                          className={`w-full text-left px-4 py-3 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg ${
+                          className={`w-full text-left px-4 py-3 text-base transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg cursor-pointer ${
                             searchType === option.value
                               ? 'bg-blue-500 text-white'
                               : 'text-gray-300 hover:bg-white/10 hover:text-white'
@@ -326,9 +403,9 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                     onKeyDown={handleKeyDown}
                     onFocus={handleInputFocus}
                     onBlur={() => setTimeout(closeSuggestions, 200)}
-                    placeholder="Digite nome, CPF, processo ou termo..."
-                    className="w-full h-10 pr-16 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-sm backdrop-blur-sm"
-                    style={{ paddingLeft: `${Math.max(112, dropdownWidth + 8)}px` }}
+                    placeholder="Digite um nome, CPF, CNPJ, número de processo..."
+                    className="w-full h-10 pr-16 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-sm backdrop-blur-sm transition-none"
+                    style={{ paddingLeft: `${desktopInputPadding}px` }}
                     autoComplete="off"
                     role="combobox"
                     aria-expanded={showSuggestions}
@@ -340,7 +417,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                   {searchTerm && (
                     <button 
                       onClick={clearInput}
-                      className="absolute top-1/2 right-12 transform -translate-y-1/2 w-6 h-6 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center"
+                      className="absolute top-1/2 right-12 transform -translate-y-1/2 w-6 h-6 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center cursor-pointer"
                       type="button"
                       aria-label="Limpar busca"
                     >
@@ -350,15 +427,23 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                     </button>
                   )}
                   
-                  {/* Botão de busca - estilo hero section */}
+                  {/* Botão de busca no lado direito */}
                   <button 
                     type="submit"
-                    className="absolute top-1/2 right-2 transform -translate-y-1/2 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center"
+                    disabled={isSearching}
+                    className="absolute top-1/2 right-2 transform -translate-y-1/2 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Buscar"
                   >
-                    <svg className="h-3 w-3 text-gray-300 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                    {isSearching ? (
+                      <svg className="h-3 w-3 text-gray-300 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="h-3 w-3 text-gray-300 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    )}
                   </button>
                 </div>
                 
@@ -375,13 +460,16 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className={`w-full text-left px-4 py-3 text-sm transition-colors duration-200 first:rounded-t-2xl last:rounded-b-2xl ${
+                        className={`w-full text-left px-4 py-3 text-sm transition-colors duration-200 first:rounded-t-2xl last:rounded-b-2xl cursor-pointer flex items-center gap-3 ${
                           index === selectedIndex
                             ? 'bg-blue-500 text-white'
                             : 'text-gray-300 hover:bg-white/10 hover:text-white'
                         }`}
                       >
-                        {suggestion}
+                        <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span className="flex-1">{highlightText(suggestion, searchTerm)}</span>
                       </button>
                     ))}
                   </div>
@@ -394,11 +482,11 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
           <div className="hidden lg:flex lg:items-center lg:space-x-3">
             <button
               onClick={handleTrialClick}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-md text-base font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
             >
               Criar conta
             </button>
-            <a href="#" className="cta-secondary text-sm font-medium leading-5 text-white hover:text-blue-400">
+            <a href="#" className="cta-secondary text-base font-medium leading-5 text-white hover:text-blue-400 cursor-pointer">
               Entrar <span aria-hidden="true">→</span>
             </a>
           </div>
@@ -407,7 +495,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
           <div className="flex lg:hidden mobile-menu-container">
             <button
               type="button"
-              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-300 hover:text-white transition-colors"
+              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-300 hover:text-white transition-colors cursor-pointer"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
@@ -425,7 +513,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
           <div className="flex gap-x-8">
             <Link 
               href="/" 
-              className={`text-sm font-medium leading-5 transition-colors duration-200 ${
+              className={`text-base font-medium leading-5 transition-colors duration-200 ${
                 isActive('') 
                   ? 'text-blue-400' 
                   : 'text-white hover:text-blue-400'
@@ -435,7 +523,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/diarios-oficiais" 
-              className={`text-sm font-medium leading-5 transition-colors duration-200 ${
+              className={`text-base font-medium leading-5 transition-colors duration-200 ${
                 isActive('diarios-oficiais') 
                   ? 'text-blue-400' 
                   : 'text-white hover:text-blue-400'
@@ -445,7 +533,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/radar-ia" 
-              className={`text-sm font-medium leading-5 transition-colors duration-200 ${
+              className={`text-base font-medium leading-5 transition-colors duration-200 ${
                 isActive('radar-ia') 
                   ? 'text-blue-400' 
                   : 'text-white hover:text-blue-400'
@@ -455,7 +543,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/explorar" 
-              className={`text-sm font-medium leading-5 transition-colors duration-200 ${
+              className={`text-base font-medium leading-5 transition-colors duration-200 ${
                 isActive('explorar') 
                   ? 'text-blue-400' 
                   : 'text-white hover:text-blue-400'
@@ -465,7 +553,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/api" 
-              className={`text-sm font-medium leading-5 transition-colors duration-200 ${
+              className={`text-base font-medium leading-5 transition-colors duration-200 ${
                 isActive('api') 
                   ? 'text-blue-400' 
                   : 'text-white hover:text-blue-400'
@@ -510,7 +598,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                           key={option.value}
                           type="button"
                           onClick={() => handleFilterSelect(option.value)}
-                          className={`w-full text-left px-3 py-2.5 text-xs transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg ${
+                          className={`w-full text-left px-3 py-2.5 text-xs transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg cursor-pointer ${
                             searchType === option.value
                               ? 'bg-blue-500 text-white'
                               : 'text-gray-300 hover:bg-white/10 hover:text-white'
@@ -532,9 +620,9 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                     onKeyDown={handleKeyDown}
                     onFocus={handleInputFocus}
                     onBlur={() => setTimeout(closeSuggestions, 200)}
-                    placeholder="Digite nome, CPF, processo ou termo..."
-                    className="w-full h-10 pr-12 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-xs backdrop-blur-sm"
-                    style={{ paddingLeft: `${Math.max(80, mobileDropdownWidth + 6)}px` }}
+                    placeholder="Digite um nome, CPF, CNPJ, número de processo..."
+                    className="w-full h-10 pr-12 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 text-xs backdrop-blur-sm transition-none"
+                    style={{ paddingLeft: `${mobileInputPadding}px` }}
                     autoComplete="off"
                     role="combobox"
                     aria-expanded={showSuggestions}
@@ -546,7 +634,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                   {searchTerm && (
                     <button 
                       onClick={clearInput}
-                      className="absolute top-1/2 right-10 transform -translate-y-1/2 w-5 h-5 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center"
+                      className="absolute top-1/2 right-10 transform -translate-y-1/2 w-5 h-5 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center cursor-pointer"
                       type="button"
                       aria-label="Limpar busca"
                     >
@@ -559,12 +647,20 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                   {/* Botão de busca mobile - estilo hero section */}
                   <button 
                     type="submit"
-                    className="absolute top-1/2 right-1.5 transform -translate-y-1/2 w-7 h-7 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center"
+                    disabled={isSearching}
+                    className="absolute top-1/2 right-1.5 transform -translate-y-1/2 w-7 h-7 bg-white/10 hover:bg-white/20 rounded-full group flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Buscar"
                   >
-                    <svg className="h-2.5 w-2.5 text-gray-300 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                    {isSearching ? (
+                      <svg className="h-2.5 w-2.5 text-gray-300 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="h-2.5 w-2.5 text-gray-300 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    )}
                   </button>
                 </div>
                 
@@ -581,13 +677,16 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className={`w-full text-left px-3 py-2.5 text-xs transition-colors duration-200 first:rounded-t-2xl last:rounded-b-2xl ${
+                        className={`w-full text-left px-3 py-2.5 text-sm transition-colors duration-200 first:rounded-t-2xl last:rounded-b-2xl cursor-pointer flex items-center gap-3 ${
                           index === selectedIndex
                             ? 'bg-blue-500 text-white'
                             : 'text-gray-300 hover:bg-white/10 hover:text-white'
                         }`}
                       >
-                        {suggestion}
+                        <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span className="flex-1">{highlightText(suggestion, searchTerm)}</span>
                       </button>
                     ))}
                   </div>
@@ -598,7 +697,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             {/* NÍVEL 2 MOBILE: Links de navegação */}
             <Link 
               href="/" 
-              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                 isActive('') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -609,7 +708,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/diarios-oficiais" 
-              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                 isActive('diarios-oficiais') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -620,7 +719,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/radar-ia" 
-              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                 isActive('radar-ia') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -631,7 +730,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/explorar" 
-              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                 isActive('explorar') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -642,7 +741,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             <Link 
               href="/api" 
-              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+              className={`block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                 isActive('api') 
                   ? 'text-blue-400 bg-blue-400/10' 
                   : 'text-white hover:text-blue-400 hover:bg-white/5'
@@ -655,7 +754,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             <div className="pt-4 border-t border-white/10 space-y-2">
               <a 
                 href="#" 
-                className="block px-3 py-2 text-sm font-medium text-white hover:text-blue-400 transition-colors duration-200"
+                className="block px-3 py-2 text-base font-medium text-white hover:text-blue-400 transition-colors duration-200 cursor-pointer"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Entrar <span aria-hidden="true">→</span>
@@ -665,7 +764,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                   handleTrialClick();
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-md text-base font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 cursor-pointer"
               >
                 Criar conta
               </button>

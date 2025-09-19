@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { 
   DocumentTextIcon, 
   ShieldCheckIcon, 
@@ -17,10 +17,12 @@ import TestimonialsCarousel from '@/components/TestimonialsCarousel';
 import BenefitsSection from '@/components/BenefitsSection';
 import TestModal from '@/components/TestModal';
 import ContactSalesModal from '@/components/ContactSalesModal';
+import AutocompletePortal from '@/components/AutocompletePortal';
 
 export default function Home() {
   const heroRef = useRef<HTMLElement>(null);
   const parallaxImageRef = useRef<HTMLDivElement>(null);
+  const heroSearchRef = useRef<HTMLDivElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
   const [trialForm, setTrialForm] = useState({ name: '', email: '' });
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
@@ -38,6 +40,14 @@ export default function Home() {
   const [hoveredLine, setHoveredLine] = useState<string | null>(null);
   const [glowIntensity, setGlowIntensity] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+
+  // Converter sugestões para formato do AutocompletePortal
+  const suggestionsForPortal = useMemo(() => {
+    return suggestions.map((suggestion, index) => ({
+      id: `suggestion-${index}`,
+      text: suggestion
+    }));
+  }, [suggestions]);
 
   const handleTrialSubmit = () => {
     console.log('Button clicked - opening modal');
@@ -60,6 +70,7 @@ export default function Home() {
 
   // Sugestões mockadas para autocomplete
   const mockSuggestions = [
+    'Rafael Ximenes',
     'concurso público',
     'concurso TRT',
     'concurso federal',
@@ -126,8 +137,27 @@ export default function Home() {
     setSearchTerm(suggestion);
     setShowSuggestions(false);
     setSelectedIndex(-1);
-    // Executar busca automaticamente
-    handleSearch();
+    
+    // Executar busca automaticamente com a sugestão selecionada
+    console.log('Sugestão selecionada:', suggestion, 'Categoria:', selectedCategory);
+    
+    // Mapear categoria para aba de destino
+    const tabMap: { [key: string]: string } = {
+      'Tudo': 'tudo',
+      'Diários Oficiais': 'diarios',
+      'Processos': 'processos'
+    };
+    
+    const targetTab = tabMap[selectedCategory] || 'dashboard';
+    
+    // Construir URL com query params
+    const params = new URLSearchParams({
+      q: suggestion.trim(),
+      type: targetTab
+    });
+    
+    // Redirecionar para explorar
+    window.location.href = `/explorar?${params.toString()}`;
   };
 
   // Função para fechar sugestões
@@ -176,13 +206,29 @@ export default function Home() {
     }
   };
 
-  // Função de busca
+  // Função de busca com redirecionamento
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      console.log('Buscando por:', searchTerm);
+      console.log('Buscando por:', searchTerm, 'Categoria:', selectedCategory);
       setShowSuggestions(false);
-      // Aqui você pode implementar a lógica de busca
-      // Por exemplo, redirecionar para a página de resultados
+      
+      // Mapear categoria para aba de destino
+      const tabMap: { [key: string]: string } = {
+        'Tudo': 'tudo',
+        'Diários Oficiais': 'diarios',
+        'Processos': 'processos'
+      };
+      
+      const targetTab = tabMap[selectedCategory] || 'dashboard';
+      
+      // Construir URL com query params
+      const params = new URLSearchParams({
+        q: searchTerm.trim(),
+        type: targetTab
+      });
+      
+      // Redirecionar para explorar
+      window.location.href = `/explorar?${params.toString()}`;
     }
   };
 
@@ -202,11 +248,11 @@ export default function Home() {
   const [glowPosition, setGlowPosition] = useState({ x: 0, y: 0 });
   const animationFrameRef = useRef<number | null>(null);
 
-  // Helper functions para gerar filtros de brilho
-  const getMainGlowFilter = () => "drop-shadow(0 0 20px rgba(59,130,246,0.8)) drop-shadow(0 0 40px rgba(139,92,246,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.4)) drop-shadow(0 0 80px rgba(236,72,153,0.2))";
-  const getLeftGlowFilter = () => "drop-shadow(0 0 20px rgba(139,92,246,0.8)) drop-shadow(0 0 40px rgba(59,130,246,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.4)) drop-shadow(0 0 80px rgba(236,72,153,0.2))";
-  const getTopGlowFilter = () => "drop-shadow(0 0 20px rgba(236,72,153,0.8)) drop-shadow(0 0 40px rgba(139,92,246,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.4)) drop-shadow(0 0 80px rgba(59,130,246,0.2))";
-  const getRightGlowFilter = () => "drop-shadow(0 0 16px rgba(139,92,246,0.8)) drop-shadow(0 0 32px rgba(59,130,246,0.6)) drop-shadow(0 0 48px rgba(168,85,247,0.4))";
+  // Helper functions para gerar filtros de brilho intenso
+  const getMainGlowFilter = () => "drop-shadow(0 0 30px rgba(59,130,246,1)) drop-shadow(0 0 60px rgba(139,92,246,0.9)) drop-shadow(0 0 90px rgba(168,85,247,0.8)) drop-shadow(0 0 120px rgba(236,72,153,0.6)) drop-shadow(0 0 150px rgba(59,130,246,0.4))";
+  const getLeftGlowFilter = () => "drop-shadow(0 0 30px rgba(139,92,246,1)) drop-shadow(0 0 60px rgba(59,130,246,0.9)) drop-shadow(0 0 90px rgba(168,85,247,0.8)) drop-shadow(0 0 120px rgba(236,72,153,0.6)) drop-shadow(0 0 150px rgba(139,92,246,0.4))";
+  const getTopGlowFilter = () => "drop-shadow(0 0 30px rgba(236,72,153,1)) drop-shadow(0 0 60px rgba(139,92,246,0.9)) drop-shadow(0 0 90px rgba(168,85,247,0.8)) drop-shadow(0 0 120px rgba(59,130,246,0.6)) drop-shadow(0 0 150px rgba(236,72,153,0.4))";
+  const getRightGlowFilter = () => "drop-shadow(0 0 25px rgba(139,92,246,1)) drop-shadow(0 0 50px rgba(59,130,246,0.9)) drop-shadow(0 0 75px rgba(168,85,247,0.8)) drop-shadow(0 0 100px rgba(236,72,153,0.6)) drop-shadow(0 0 125px rgba(139,92,246,0.4))";
 
 
 
@@ -326,7 +372,7 @@ export default function Home() {
         const detectionRadius = 200; // Aumentei o raio de detecção
         if (minDistance < detectionRadius) {
           // Intensidade aumenta conforme o mouse se aproxima da linha (distância menor = brilho maior)
-          intensity = Math.max(0, (1 - (minDistance / detectionRadius)) * 1.2); // Aumentei a intensidade máxima
+          intensity = Math.max(0, (1 - (minDistance / detectionRadius)) * 2.0); // Brilho muito mais intenso
           detectedLine = closestLine;
         }
         
@@ -546,19 +592,15 @@ export default function Home() {
     };
   }, [isMouseOverPricing]);
 
-
-  // Parallax effect - Zoom in on scroll
+  // Parallax effect - Movimento suave da imagem de background
   useEffect(() => {
     const handleScroll = () => {
       if (parallaxImageRef.current) {
         const scrolled = window.pageYOffset;
-        const maxScroll = window.innerHeight; // Altura da viewport
-        const scrollProgress = Math.min(scrolled / maxScroll, 1); // Progresso de 0 a 1
+        // Movimento mais sutil: 30% da velocidade do scroll
+        const translateY = scrolled * 0.3;
         
-        // Zoom de 1.0 (100%) até 1.2 (120%) baseado no scroll
-        const scale = 1 + (scrollProgress * 0.2);
-        
-        parallaxImageRef.current.style.transform = `scale(${scale})`;
+        parallaxImageRef.current.style.transform = `translateY(${translateY}px)`;
       }
     };
 
@@ -674,18 +716,19 @@ export default function Home() {
   return (
     <div className="bg-transparent">
       <TransparentHeader 
+        currentPage=""
         onTrialClick={() => setIsTestModalOpen(true)} 
       />
 
       {/* Hero Section */}
-      <section ref={heroRef} className="relative isolate overflow-hidden h-screen flex items-center justify-center">
+      <section ref={heroRef} className="relative w-full min-h-screen flex items-center justify-center overflow-hidden">
         {/* Gradiente base (fallback) */}
         <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
           <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
         </div>
         
-        {/* Imagem de fundo - Fallback para gradiente se imagem não existir */}
-        <div ref={parallaxImageRef} className="parallax-container absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+        {/* BG Parallax */}
+        <div ref={parallaxImageRef} className="absolute inset-0 z-0 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ willChange: 'transform' }}>
           <Image
             src="/images/Imagem Diário Oficial.png"
             alt="Jornais do Diário Oficial"
@@ -697,8 +740,7 @@ export default function Home() {
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
             className="object-cover object-center md:object-[50%_35%] w-full h-full"
             style={{ 
-              filter: 'brightness(0.7) contrast(1.05) saturate(0.8) blur(0.5px)',
-              willChange: 'transform'
+              filter: 'brightness(0.7) contrast(1.05) saturate(0.8) blur(0.5px)'
             }}
           />
         </div>
@@ -876,19 +918,18 @@ export default function Home() {
         {/* Spotlight effect - Fixed center */}
         <div className="spotlight-fixed absolute inset-0 pointer-events-none" style={{ zIndex: 3 }} />
 
-        {/* Overlay 2 - Vignette para focar no título */}
+        {/* Overlay */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 z-10"
           style={{
             background:
-              'radial-gradient(120% 70% at 50% 30%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.65) 100%)',
-            zIndex: 4
+              'radial-gradient(120% 70% at 50% 30%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.65) 100%)'
           }}
         />
 
-        {/* Degradê de transição para próxima seção */}
-        <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-[#0a0a0f] to-transparent pointer-events-none" style={{ zIndex: 4 }} />
+        {/* Fade de transição na base da hero */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 z-10 bg-gradient-to-b from-transparent to-slate-900/50" />
 
         {/* Scroll cue indicator */}
         {showScrollCue && (
@@ -935,7 +976,7 @@ export default function Home() {
 
 
         {/* Conteúdo do Hero */}
-        <div className="relative px-4 sm:px-6 lg:px-8 w-full max-w-6xl mx-auto hero-content" style={{ zIndex: 25, pointerEvents: 'none' }}>
+        <div className="relative z-20 px-4 sm:px-6 lg:px-8 w-full max-w-6xl mx-auto hero-content" style={{ pointerEvents: 'none' }}>
           <div className="flex items-center justify-center h-full">
             <div className="w-full text-center space-y-6 sm:space-y-8">
               <div className="hidden sm:mb-4 sm:flex sm:justify-center sm:pt-4 fade-in-delay-1">
@@ -944,27 +985,27 @@ export default function Home() {
                 </div>
               </div>
               <div className="text-center max-w-4xl mx-auto space-y-0 sm:space-y-1 fade-in-delay-2">
-                <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tight">
+                <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl leading-tight">
                   Pesquise em todos os <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Diários Oficiais</span> do Brasil
                 </h1>
-                <p className="text-xs leading-5 text-gray-300 sm:text-sm sm:leading-6 md:text-base max-w-xl mx-auto">
-                  Digite um termo e encontre publicações em mais de 2.500 diários oficiais, em todas as esferas e poderes.
+                <p className="text-sm leading-6 text-gray-300 sm:text-base sm:leading-7 md:text-lg max-w-xl mx-auto">
+                  Encontre publicações em mais de 2.500 diários oficiais, em todas as esferas e poderes.
                 </p>
                 
                 {/* Componentes Soltos na Hero Section - Estilo Jusbrasil */}
                 <div className="mt-10 max-w-4xl mx-auto sm:mt-12 space-y-6" style={{ pointerEvents: 'auto' }}>
                   {/* Campo de Busca Principal Integrado - Solto */}
                   <div className="relative max-w-2xl mx-auto">
-                    <div className="relative w-full">
+                    <div ref={heroSearchRef} className="relative w-full">
                       <input
                         type="text"
-                        placeholder="Digite nome, CPF, processo ou termo..."
+                        placeholder="Digite um nome, CPF, CNPJ, número de processo..."
                         value={searchTerm}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         onFocus={handleInputFocus}
                         onBlur={() => setTimeout(closeSuggestions, 200)}
-                        className="w-full pl-4 pr-24 py-4 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 transition-all duration-200 text-base sm:text-lg"
+                        className="w-full pl-4 pr-24 py-4 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 focus:shadow-lg focus:shadow-blue-400/20 transition-all duration-200 text-lg sm:text-xl"
                         style={{ pointerEvents: 'auto' }}
                         autoComplete="off"
                         role="combobox"
@@ -1002,43 +1043,44 @@ export default function Home() {
                       </button>
                     </div>
                     
-                    {/* Menu Suspenso de Sugestões */}
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div 
-                        className="absolute top-full left-0 right-0 mt-2 bg-gray-900/90 backdrop-blur-sm border border-white/30 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto"
-                        role="listbox"
-                        aria-label="Sugestões de busca"
-                      >
-                        {suggestions.map((suggestion, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => handleSuggestionClick(suggestion)}
-                            className={`w-full px-4 py-3 text-left text-white transition-all duration-200 flex items-center gap-3 first:rounded-t-2xl last:rounded-b-2xl ${
-                              selectedIndex === index 
-                                ? 'bg-blue-500/30 border-l-2 border-blue-400' 
-                                : 'hover:bg-blue-500/20'
-                            }`}
-                            role="option"
-                            aria-selected={selectedIndex === index}
-                          >
-                            <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <span className="flex-1">
-                              {suggestion.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) => 
-                                part.toLowerCase() === searchTerm.toLowerCase() ? (
-                                  <strong key={i} className="text-blue-300">{part}</strong>
-                                ) : (
-                                  <span key={i}>{part}</span>
-                                )
-                              )}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {/* Autocomplete Portal */}
+                    <AutocompletePortal
+                      anchorRef={heroSearchRef as React.RefObject<HTMLElement>}
+                      open={showSuggestions}
+                      items={suggestionsForPortal}
+                      onSelect={(item) => handleSuggestionClick(item.text)}
+                      onClose={closeSuggestions}
+                      selectedIndex={selectedIndex}
+                      onKeyDown={handleKeyDown}
+                      renderItem={(item, index, isSelected) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleSuggestionClick(item.text)}
+                          className={`w-full px-4 py-3 text-left text-white transition-all duration-200 flex items-center gap-3 first:rounded-t-2xl last:rounded-b-2xl ${
+                            isSelected 
+                              ? 'bg-blue-500/30 border-l-2 border-blue-400' 
+                              : 'hover:bg-blue-500/20'
+                          }`}
+                          role="option"
+                          aria-selected={isSelected}
+                        >
+                          <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <span className="flex-1">
+                            {item.text.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) => 
+                              part.toLowerCase() === searchTerm.toLowerCase() ? (
+                                <strong key={i} className="text-blue-300">{part}</strong>
+                              ) : (
+                                <span key={i}>{part}</span>
+                              )
+                            )}
+                          </span>
+                        </button>
+                      )}
+                    />
                   </div>
                   
                   {/* Categorias de Busca */}
@@ -1051,7 +1093,7 @@ export default function Home() {
                           console.log('Categoria selecionada:', category);
                           setSelectedCategory(category);
                         }}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer relative z-10 ${
+                        className={`px-4 py-2 rounded-full text-base font-medium transition-colors duration-200 cursor-pointer relative z-10 ${
                           selectedCategory === category
                             ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
                             : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-blue-500/20 hover:border-blue-400 hover:text-white'

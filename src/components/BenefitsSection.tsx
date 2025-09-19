@@ -99,52 +99,53 @@ export default function BenefitsSection() {
   const active = useMemo(() => BENEFITS.find(b => b.id === activeId)!, [activeId]);
 
   return (
-    <section id="features" className="py-16 sm:py-24 lg:py-32 relative overflow-hidden bg-transparent">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 relative">
-        <RevealWrapper delay={0}>
-          <header className="mb-12 text-center">
-            <h1 className="text-xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-2xl lg:text-3xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Benefícios</h1>
-            <h2 className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
-              Tudo que você precisa para acompanhar publicações com praticidade
-            </h2>
-          </header>
-        </RevealWrapper>
-
-        {/* Desktop Layout */}
-        <div className="hidden lg:grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
-          {/* Card principal */}
-          <RevealWrapper delay={200}>
-            <BenefitMainCard benefit={active} />
+    <section id="features" className="relative z-0 bg-transparent">
+      <div className="py-16 sm:py-24 lg:py-32">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 relative overflow-hidden">
+          <RevealWrapper delay={0}>
+            <header className="mb-12 text-center">
+              <h1 className="text-xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-2xl lg:text-3xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Benefícios</h1>
+              <h2 className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
+                Tudo que você precisa para acompanhar publicações com praticidade
+              </h2>
+            </header>
           </RevealWrapper>
 
-          {/* Rail de mini-cards */}
-          <RevealWrapper delay={400}>
-            <BenefitRail
-              items={BENEFITS}
-              activeId={activeId}
-              onSelect={setActiveId}
-            />
-          </RevealWrapper>
-        </div>
-
-        {/* Tablet Layout */}
-        <div className="hidden md:block lg:hidden">
-          <div className="space-y-8">
+          {/* Desktop Layout */}
+          <div className="hidden lg:grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
             {/* Card principal */}
             <RevealWrapper delay={200}>
               <BenefitMainCard benefit={active} />
             </RevealWrapper>
 
-            {/* Grid de mini-cards */}
+            {/* Rail de mini-cards */}
             <RevealWrapper delay={400}>
-              <div className="grid grid-cols-2 gap-3">
-              {BENEFITS.map((item) => {
-                const isActive = item.id === activeId;
-                return (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => setActiveId(item.id)}
+              <BenefitRail
+                items={BENEFITS}
+                activeId={activeId}
+                onSelect={setActiveId}
+              />
+            </RevealWrapper>
+          </div>
+
+          {/* Tablet Layout */}
+          <div className="hidden md:block lg:hidden">
+            <div className="space-y-8">
+              {/* Card principal */}
+              <RevealWrapper delay={200}>
+                <BenefitMainCard benefit={active} />
+              </RevealWrapper>
+
+              {/* Grid de mini-cards */}
+              <RevealWrapper delay={400}>
+                <div className="grid grid-cols-2 gap-3">
+                  {BENEFITS.map((item) => {
+                    const isActive = item.id === activeId;
+                      return (
+                        <motion.button
+                          key={item.id}
+                          whileHover={{ scale: 1.02 }}
+                          onClick={() => setActiveId(item.id)}
                     className={`
                       flex items-center gap-3 rounded-xl border px-4 py-4 transition-all duration-200
                       focus:outline-none focus:ring-2 focus:ring-blue-500/50
@@ -168,9 +169,9 @@ export default function BenefitsSection() {
                       {item.label}
                     </span>
                   </motion.button>
-                );
-              })}
-              </div>
+                      );
+                    })}
+                </div>
             </RevealWrapper>
           </div>
         </div>
@@ -210,6 +211,7 @@ export default function BenefitsSection() {
             </RevealWrapper>
           </div>
         </div>
+      </div>
       </div>
     </section>
   );
