@@ -1620,7 +1620,7 @@ export default function Home() {
                   <div className="mt-auto">
                     <button 
                       onClick={() => setIsContactSalesModalOpen(true)}
-                      className="w-full bg-indigo-600 text-white hover:bg-indigo-500 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
+                      className="w-full bg-indigo-600 text-white hover:bg-indigo-500 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer"
                     >
                       Contatar Vendas
                     </button>

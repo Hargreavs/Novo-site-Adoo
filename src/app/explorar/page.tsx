@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, memo, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import TransparentHeader from '@/components/TransparentHeader';
 import TestModal from '@/components/TestModal';
@@ -54,13 +54,13 @@ const EsferaButton = memo(({
 
 EsferaButton.displayName = 'EsferaButton';
 
-export default function ExplorarPage() {
+function ExplorarContent() {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const searchParams = useSearchParams();
   
   // Determinar aba inicial baseada no parâmetro 'type' da URL
   const getInitialTab = () => {
-    const type = searchParams.get('type') || 'dashboard';
+    const type = searchParams.get('type') || 'processos';
     return type;
   };
   
@@ -73,7 +73,7 @@ export default function ExplorarPage() {
   
   // Atualizar aba quando os parâmetros da URL mudarem
   useEffect(() => {
-    const type = searchParams.get('type') || 'dashboard';
+    const type = searchParams.get('type') || 'processos';
     setActiveTab(type);
   }, [searchParams]);
   
@@ -98,19 +98,20 @@ export default function ExplorarPage() {
     }
   }, [activeTab, searchParams]);
   
-  const [expandedDou, setExpandedDou] = useState<string | null>(null);
   const [selectedDiario, setSelectedDiario] = useState('Diário Oficial da União');
   const [selectedPoder, setSelectedPoder] = useState('Executivo');
   const [selectedEsfera, setSelectedEsfera] = useState('Federal');
   const [showDiarioDropdown, setShowDiarioDropdown] = useState(false);
   const [diarioSearchTerm, setDiarioSearchTerm] = useState('');
-  const [selectedCard, setSelectedCard] = useState('diarios');
   const [selectedPeriodo, setSelectedPeriodo] = useState('hoje');
   const [revealedLicitacoes, setRevealedLicitacoes] = useState(0);
   const [showMoreLicitacoes, setShowMoreLicitacoes] = useState(false);
-  const [showMoreConcursos, setShowMoreConcursos] = useState(false);
-  const [expandedConcurso, setExpandedConcurso] = useState<string | null>(null);
   const [expandedLicitacao, setExpandedLicitacao] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Flags para evitar loops de busca
+  const [isSearchingProcessos, setIsSearchingProcessos] = useState(false);
+  const [isSearchingDiarios, setIsSearchingDiarios] = useState(false);
   
   // Estados para busca de processos
   const [processoSearchTerm, setProcessoSearchTerm] = useState('');
@@ -127,7 +128,7 @@ export default function ExplorarPage() {
   const [processosPerPage] = useState(5);
   
   // Refs para autocomplete portal
-  const processoAnchorRef = useRef<HTMLDivElement>(null);
+  const processoAnchorRef = useRef<HTMLElement>(null);
   
   // Estados para busca de Diários Oficiais
   const [diarioOficialSearchTerm, setDiarioOficialSearchTerm] = useState('');
@@ -141,9 +142,9 @@ export default function ExplorarPage() {
   const [selectedDiarioOficialId, setSelectedDiarioOficialId] = useState<number | null>(null);
   
   // Refs para autocomplete portal
-  const diarioOficialAnchorRef = useRef<HTMLDivElement>(null);
+  const diarioOficialAnchorRef = useRef<HTMLElement>(null);
   const [currentDiarioOficialPage, setCurrentDiarioOficialPage] = useState(1);
-  const [diariosOficiaisPerPage] = useState(5);
+  const [diariosOficiaisPerPage] = useState(10);
   
   // Estados para aba Tudo
   const [currentTudoPage, setCurrentTudoPage] = useState(1);
@@ -172,6 +173,12 @@ export default function ExplorarPage() {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     
+    // Manter filtros visíveis se houver resultados ativos
+    const hasActiveResults = processoSearchResults.length > 0 || diarioOficialSearchResults.length > 0;
+    if (!hasActiveResults) {
+      setShowFilters(false);
+    }
+    
     // Preservar o termo pesquisado da URL
     const urlQuery = searchParams.get('q');
     
@@ -185,6 +192,9 @@ export default function ExplorarPage() {
       if (urlQuery) {
         setProcessoSearchTerm(urlQuery);
         handleProcessoSearch(urlQuery);
+      } else if (processoSearchTerm && !processoSearchResults.length) {
+        // Se há termo sincronizado mas sem resultados, executar busca
+        handleProcessoSearch(processoSearchTerm);
       }
     } else if (tab === 'diarios') {
       // Ajustar filtros para Diários Oficiais
@@ -196,6 +206,9 @@ export default function ExplorarPage() {
       if (urlQuery) {
         setDiarioOficialSearchTerm(urlQuery);
         executeDiarioOficialSearch(urlQuery);
+      } else if (diarioOficialSearchTerm && !diarioOficialSearchResults.length) {
+        // Se há termo sincronizado mas sem resultados, executar busca
+        executeDiarioOficialSearch(diarioOficialSearchTerm);
       }
     } else if (tab === 'dashboard') {
       // Ajustar filtros para Diários Oficiais
@@ -218,6 +231,10 @@ export default function ExplorarPage() {
         setShowDiarioDropdown(false);
         setDiarioSearchTerm('');
       }
+      const target = event.target as Element;
+      if (!target.closest('.concursos-dropdown-container')) {
+        setShowDiarioDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -231,37 +248,6 @@ export default function ExplorarPage() {
     setIsTestModalOpen(true);
   };
 
-  // Função para mostrar mais concursos com scroll
-  const handleShowMoreConcursos = () => {
-    setShowMoreConcursos(true);
-    // Scroll para centralizar a seção de concursos
-    setTimeout(() => {
-      const element = document.getElementById('concursos-section');
-      if (element) {
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-      }
-    }, 100);
-  };
-
-  // Função para mostrar menos concursos com scroll
-  const handleShowLessConcursos = () => {
-    setShowMoreConcursos(false);
-    // Scroll para o topo da seção de concursos
-    setTimeout(() => {
-      const element = document.getElementById('concursos-section');
-      if (element) {
-        // Usar scrollIntoView com block: 'start' para ir para o topo
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start',
-          inline: 'nearest'
-        });
-      }
-    }, 200); // Aumentar o delay para garantir que o estado foi atualizado
-  };
 
   // Função para mostrar mais licitações com scroll
   const handleShowMoreLicitacoes = () => {
@@ -684,6 +670,11 @@ export default function ExplorarPage() {
     const value = e.target.value;
     setProcessoSearchTerm(value);
     
+    // Esconder filtros se o campo estiver vazio
+    if (!value.trim()) {
+      setShowFilters(false);
+    }
+    
     // Limpar resultados sempre que o texto for alterado
     setProcessoSearchResults([]);
     setSelectedProcessoId(null);
@@ -731,6 +722,17 @@ export default function ExplorarPage() {
     setSelectedProcessoId(null);
     setShowProcessoDetails(false);
     setCurrentProcessoPage(1);
+    
+    // Limpar também o termo de busca dos Diários Oficiais
+    setDiarioOficialSearchTerm('');
+    setDiarioOficialSearchResults([]);
+    
+    // Resetar flags de busca
+    setIsSearchingProcessos(false);
+    setIsSearchingDiarios(false);
+    
+    // Ocultar filtros quando não há resultados
+    setShowFilters(false);
   };
 
   // Função para selecionar sugestão
@@ -777,9 +779,14 @@ export default function ExplorarPage() {
   const handleProcessoSearch = (term?: string) => {
     const searchTerm = term || processoSearchTerm;
     console.log('Buscando por:', searchTerm);
-    if (searchTerm && typeof searchTerm === 'string' && searchTerm.trim()) {
+    if (searchTerm && typeof searchTerm === 'string' && searchTerm.trim() && !isSearchingProcessos) {
+      setIsSearchingProcessos(true);
       setIsProcessoLoading(true);
       setShowProcessoSuggestions(false);
+      setShowFilters(true); // Mostrar filtros quando houver busca
+      
+      // Sincronizar termo de busca nos Diários Oficiais (apenas o termo, sem executar busca)
+      setDiarioOficialSearchTerm(searchTerm);
       
       // Simular busca
       setTimeout(() => {
@@ -789,6 +796,7 @@ export default function ExplorarPage() {
         console.log('Resultados encontrados:', results);
         setProcessoSearchResults(results);
         setIsProcessoLoading(false);
+        setIsSearchingProcessos(false);
       }, 1500);
     }
   };
@@ -830,101 +838,91 @@ export default function ExplorarPage() {
     'Rafael Ximenes': [
       {
         id: 1,
-        titulo: 'EDITAL DE CONCURSO PÚBLICO Nº 001/2024 - PREFEITURA MUNICIPAL',
-        diario: 'Diário Oficial da União',
-        data: '18/01/2024',
-        secao: 'Seção 3 - Concursos e Licitações',
-        edicao: '12348',
-        conteudo: 'Abertura de concurso público para diversos cargos, incluindo vagas para Rafael Ximenes e outros candidatos.'
+        nome: 'Rafael Ximenes',
+        resultados: 21,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário da Justiça do Estado do Pará',
+          'Diário Oficial de São Paulo',
+          'Diário Oficial do Estado do Rio de Janeiro',
+          'Diário Oficial do Estado de Minas Gerais'
+        ],
+        conteudo: 'Foram encontrados 21 resultados para o termo Rafael Ximenes nos diários oficiais'
       },
       {
         id: 2,
-        titulo: 'EDITAL DE LICITAÇÃO Nº 045/2024 - CONTRATAÇÃO DE SERVIÇOS',
-        diario: 'Diário Oficial do Estado de São Paulo',
-        data: '17/01/2024',
-        secao: 'Seção 2 - Licitações',
-        edicao: '45678',
-        conteudo: 'Licitação para contratação de serviços de consultoria, com participação de Rafael Ximenes e outras empresas.'
+        nome: 'Rafael Ximenes da Silva',
+        resultados: 15,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário Oficial do Estado de São Paulo',
+          'Diário Oficial do Estado do Rio de Janeiro'
+        ],
+        conteudo: 'Foram encontrados 15 resultados para o termo Rafael Ximenes da Silva nos diários oficiais'
       },
       {
         id: 3,
-        titulo: 'PORTARIA Nº 123/2024 - NOMEAÇÃO DE SERVIDORES',
-        diario: 'Diário Oficial da União',
-        data: '16/01/2024',
-        secao: 'Seção 1 - Atos do Poder Executivo',
-        edicao: '12347',
-        conteudo: 'Nomeação de Rafael Ximenes para cargo público em órgão federal.'
+        nome: 'Rafael Ximenes Souza',
+        resultados: 12,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário Oficial do Estado de São Paulo',
+          'Diário Oficial do Estado de Minas Gerais'
+        ],
+        conteudo: 'Foram encontrados 12 resultados para o termo Rafael Ximenes Souza nos diários oficiais'
+      },
+      {
+        id: 4,
+        nome: 'Rafael Ximenes LTDA',
+        resultados: 8,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário Oficial do Estado de São Paulo'
+        ],
+        conteudo: 'Foram encontrados 8 resultados para o termo Rafael Ximenes LTDA nos diários oficiais'
+      },
+      {
+        id: 5,
+        nome: 'Rafael Ximenes Menezes',
+        resultados: 6,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário Oficial do Estado do Rio de Janeiro'
+        ],
+        conteudo: 'Foram encontrados 6 resultados para o termo Rafael Ximenes Menezes nos diários oficiais'
       }
     ],
     'João da Silva': [
       {
         id: 1,
-        titulo: 'CONCURSO PÚBLICO Nº 001/2024 - PREFEITURA MUNICIPAL DE SÃO PAULO',
-        diario: 'Diário Oficial da União',
-        data: '18/01/2024',
-        secao: 'Seção 3 - Concursos e Licitações',
-        edicao: '12348',
-        conteudo: 'Abertura de concurso público para diversos cargos na Prefeitura Municipal de São Paulo, incluindo vagas para João da Silva e outros candidatos.'
+        nome: 'João da Silva',
+        resultados: 12,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário Oficial do Estado de São Paulo',
+          'Diário Oficial do Estado do Rio de Janeiro'
+        ],
+        conteudo: 'Foram encontrados 12 resultados para o termo João da Silva nos diários oficiais'
       },
       {
         id: 2,
-        titulo: 'EDITAL DE LICITAÇÃO Nº 045/2024 - CONTRATAÇÃO DE SERVIÇOS',
-        diario: 'Diário Oficial do Estado de São Paulo',
-        data: '17/01/2024',
-        secao: 'Seção 2 - Licitações',
-        edicao: '45678',
-        conteudo: 'Licitação para contratação de serviços de consultoria, com participação de João da Silva e outras empresas.'
+        nome: 'João da Silva Santos',
+        resultados: 8,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário Oficial do Estado de São Paulo'
+        ],
+        conteudo: 'Foram encontrados 8 resultados para o termo João da Silva Santos nos diários oficiais'
       },
       {
         id: 3,
-        titulo: 'PORTARIA Nº 123/2024 - NOMEAÇÃO DE SERVIDORES',
-        diario: 'Diário Oficial da União',
-        data: '16/01/2024',
-        secao: 'Seção 1 - Atos do Poder Executivo',
-        edicao: '12347',
-        conteudo: 'Nomeação de João da Silva para o cargo de Analista Administrativo na Secretaria de Estado.'
-      }
-    ],
-    'Rafael Ximenes': [
-      {
-        id: 10,
-        nome: 'Rafael Ximenes',
-        diario: 'Diário Oficial da União',
-        data: '18/01/2024',
-        resultados: 21,
-        conteudo: 'Mencionado em edital de concurso público para provimento de vagas na Prefeitura Municipal de São Paulo.'
-      },
-      {
-        id: 11,
-        nome: 'Rafael Ximenes da Silva',
-        diario: 'Diário Oficial do Estado de São Paulo',
-        data: '17/01/2024',
-        resultados: 8,
-        conteudo: 'Citado em processo licitatório para contratação de serviços de manutenção predial.'
-      },
-      {
-        id: 12,
-        nome: 'Rafael Ximenes Santos',
-        diario: 'Diário Oficial da União',
-        data: '16/01/2024',
-        resultados: 15,
-        conteudo: 'Mencionado em portaria da Secretaria de Educação estabelecendo diretrizes para políticas públicas.'
-      },
-      {
-        id: 13,
-        nome: 'Rafael Ximenes Oliveira',
-        diario: 'Diário Oficial do Estado do Rio de Janeiro',
-        data: '15/01/2024',
-        resultados: 3,
-        conteudo: 'Referenciado em decreto governamental sobre políticas de desenvolvimento regional.'
-      },
-      {
-        id: 14,
-        nome: 'Rafael Ximenes Costa',
-        diario: 'Diário Oficial da União',
-        data: '14/01/2024',
-        resultados: 12,
-        conteudo: 'Aparece em resolução do Conselho Federal de Administração sobre diretrizes profissionais.'
+        nome: 'João da Silva Lima',
+        resultados: 5,
+        diarios: [
+          'Diário Oficial da União',
+          'Diário Oficial do Estado de Minas Gerais'
+        ],
+        conteudo: 'Foram encontrados 5 resultados para o termo João da Silva Lima nos diários oficiais'
       }
     ],
     'Licitação': [
@@ -989,21 +987,260 @@ export default function ExplorarPage() {
 
   // Mock data para detalhes dos diários individuais
   const mockDiarioDetalhes = {
-    1: [ // João da Silva - 3 resultados
+    1: [ // Rafael Ximenes - 21 resultados
       {
         id: 'diario_1_1',
-        titulo: 'CONCURSO PÚBLICO Nº 001/2024 - PREFEITURA MUNICIPAL DE SÃO PAULO',
+        termo: 'Rafael Ximenes',
         diario: 'Diário Oficial da União',
-        data: '18/01/2024',
-        secao: 'Seção 3 - Concursos e Licitações',
-        edicao: '12348',
-        conteudo: 'Abertura de concurso público para diversos cargos na Prefeitura Municipal de São Paulo, incluindo vagas para João da Silva e outros candidatos.',
-        orgao: 'Prefeitura Municipal de São Paulo',
-        cargo: 'Analista Administrativo',
-        salario: 'R$ 8.500,00',
-        requisitos: 'Ensino superior completo em Administração ou áreas afins',
-        prazoInscricao: '15/02/2024',
-        dataProva: '10/03/2024'
+        trecho: 'Presidente do Tribunal Superior do Trabalho convoca RAFAEL XIMENES para assumir cargo de Analista em Tecnologia da Informação do Tribunal Superior do Trabalho, conforme Edital nº 001/2024.',
+        data: '24/11/2024'
+      },
+      {
+        id: 'diario_1_2',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Educação nomeia RAFAEL XIMENES para o cargo de Coordenador de Projetos Educacionais na Secretaria de Educação Básica.',
+        data: '23/11/2024'
+      },
+      {
+        id: 'diario_1_3',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário da Justiça do Estado do Pará',
+        trecho: 'Tribunal de Justiça do Pará publica sentença em processo trabalhista envolvendo RAFAEL XIMENES contra empresa privada.',
+        data: '22/11/2024'
+      },
+      {
+        id: 'diario_1_4',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial de São Paulo',
+        trecho: 'Prefeitura de São Paulo convoca RAFAEL XIMENES para prestar depoimento em processo administrativo de licitação.',
+        data: '21/11/2024'
+      },
+      {
+        id: 'diario_1_5',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial do Estado do Rio de Janeiro',
+        trecho: 'Governo do Rio de Janeiro nomeia RAFAEL XIMENES para comissão de avaliação de projetos de inovação tecnológica.',
+        data: '20/11/2024'
+      },
+      {
+        id: 'diario_1_6',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Ciência e Tecnologia publica edital de licitação com participação de RAFAEL XIMENES como consultor técnico.',
+        data: '19/11/2024'
+      },
+      {
+        id: 'diario_1_7',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial do Estado de Minas Gerais',
+        trecho: 'Tribunal de Justiça de Minas Gerais publica acórdão em recurso de RAFAEL XIMENES contra decisão de primeira instância.',
+        data: '18/11/2024'
+      },
+      {
+        id: 'diario_1_8',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Educação publica portaria reconhecendo curso de pós-graduação coordenado por RAFAEL XIMENES.',
+        data: '17/11/2024'
+      },
+      {
+        id: 'diario_1_9',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial de São Paulo',
+        trecho: 'Secretaria de Estado da Educação nomeia RAFAEL XIMENES para cargo de Diretor de Projetos Especiais.',
+        data: '16/11/2024'
+      },
+      {
+        id: 'diario_1_10',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Tribunal Superior do Trabalho publica decisão em processo de RAFAEL XIMENES contra empresa de tecnologia.',
+        data: '15/11/2024'
+      },
+      {
+        id: 'diario_1_11',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial do Estado do Rio de Janeiro',
+        trecho: 'Prefeitura do Rio de Janeiro convoca RAFAEL XIMENES para audiência pública sobre políticas de educação.',
+        data: '14/11/2024'
+      },
+      {
+        id: 'diario_1_12',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Saúde nomeia RAFAEL XIMENES para comissão de avaliação de projetos de telemedicina.',
+        data: '13/11/2024'
+      },
+      {
+        id: 'diario_1_13',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial de São Paulo',
+        trecho: 'Tribunal de Justiça de São Paulo publica sentença em processo cível de RAFAEL XIMENES contra construtora.',
+        data: '12/11/2024'
+      },
+      {
+        id: 'diario_1_14',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Economia publica edital de contratação de serviços com participação de RAFAEL XIMENES.',
+        data: '11/11/2024'
+      },
+      {
+        id: 'diario_1_15',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial do Estado de Minas Gerais',
+        trecho: 'Governo de Minas Gerais nomeia RAFAEL XIMENES para cargo de Assessor Especial em Tecnologia.',
+        data: '10/11/2024'
+      },
+      {
+        id: 'diario_1_16',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Tribunal Regional do Trabalho publica sentença em processo trabalhista de RAFAEL XIMENES contra banco.',
+        data: '09/11/2024'
+      },
+      {
+        id: 'diario_1_17',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial do Estado do Rio de Janeiro',
+        trecho: 'Prefeitura do Rio de Janeiro convoca RAFAEL XIMENES para reunião técnica sobre projetos de inovação.',
+        data: '08/11/2024'
+      },
+      {
+        id: 'diario_1_18',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Educação publica portaria aprovando projeto de pesquisa coordenado por RAFAEL XIMENES.',
+        data: '07/11/2024'
+      },
+      {
+        id: 'diario_1_19',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial de São Paulo',
+        trecho: 'Secretaria de Estado da Educação nomeia RAFAEL XIMENES para comissão de avaliação de cursos superiores.',
+        data: '06/11/2024'
+      },
+      {
+        id: 'diario_1_20',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial da União',
+        trecho: 'Tribunal Superior do Trabalho publica acórdão em recurso de RAFAEL XIMENES contra decisão de segunda instância.',
+        data: '05/11/2024'
+      },
+      {
+        id: 'diario_1_21',
+        termo: 'Rafael Ximenes',
+        diario: 'Diário Oficial do Estado de Minas Gerais',
+        trecho: 'Governo de Minas Gerais convoca RAFAEL XIMENES para audiência pública sobre políticas de tecnologia.',
+        data: '04/11/2024'
+      }
+    ],
+    2: [ // Rafael Ximenes da Silva - 15 resultados
+      {
+        id: 'diario_2_1',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Educação nomeia RAFAEL XIMENES DA SILVA para cargo de Coordenador de Projetos Educacionais.',
+        data: '23/11/2024'
+      },
+      {
+        id: 'diario_2_2',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial do Estado de São Paulo',
+        trecho: 'Prefeitura de São Paulo convoca RAFAEL XIMENES DA SILVA para prestar depoimento em processo administrativo.',
+        data: '22/11/2024'
+      },
+      {
+        id: 'diario_2_3',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial do Estado do Rio de Janeiro',
+        trecho: 'Governo do Rio de Janeiro nomeia RAFAEL XIMENES DA SILVA para comissão de avaliação de projetos.',
+        data: '21/11/2024'
+      },
+      {
+        id: 'diario_2_4',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial da União',
+        trecho: 'Tribunal Superior do Trabalho publica sentença em processo de RAFAEL XIMENES DA SILVA contra empresa.',
+        data: '20/11/2024'
+      },
+      {
+        id: 'diario_2_5',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial de São Paulo',
+        trecho: 'Secretaria de Estado da Educação nomeia RAFAEL XIMENES DA SILVA para cargo de Diretor de Projetos.',
+        data: '19/11/2024'
+      },
+      {
+        id: 'diario_2_6',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Ciência e Tecnologia publica edital com participação de RAFAEL XIMENES DA SILVA.',
+        data: '18/11/2024'
+      },
+      {
+        id: 'diario_2_7',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial do Estado do Rio de Janeiro',
+        trecho: 'Prefeitura do Rio de Janeiro convoca RAFAEL XIMENES DA SILVA para audiência pública.',
+        data: '17/11/2024'
+      },
+      {
+        id: 'diario_2_8',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Saúde nomeia RAFAEL XIMENES DA SILVA para comissão de avaliação.',
+        data: '16/11/2024'
+      },
+      {
+        id: 'diario_2_9',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial de São Paulo',
+        trecho: 'Tribunal de Justiça de São Paulo publica sentença em processo de RAFAEL XIMENES DA SILVA.',
+        data: '15/11/2024'
+      },
+      {
+        id: 'diario_2_10',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Economia publica edital de contratação com RAFAEL XIMENES DA SILVA.',
+        data: '14/11/2024'
+      },
+      {
+        id: 'diario_2_11',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial do Estado de Minas Gerais',
+        trecho: 'Governo de Minas Gerais nomeia RAFAEL XIMENES DA SILVA para cargo de Assessor.',
+        data: '13/11/2024'
+      },
+      {
+        id: 'diario_2_12',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial da União',
+        trecho: 'Tribunal Regional do Trabalho publica sentença de RAFAEL XIMENES DA SILVA.',
+        data: '12/11/2024'
+      },
+      {
+        id: 'diario_2_13',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial do Estado do Rio de Janeiro',
+        trecho: 'Prefeitura do Rio de Janeiro convoca RAFAEL XIMENES DA SILVA para reunião.',
+        data: '11/11/2024'
+      },
+      {
+        id: 'diario_2_14',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial da União',
+        trecho: 'Ministério da Educação publica portaria aprovando projeto de RAFAEL XIMENES DA SILVA.',
+        data: '10/11/2024'
+      },
+      {
+        id: 'diario_2_15',
+        termo: 'Rafael Ximenes da Silva',
+        diario: 'Diário Oficial de São Paulo',
+        trecho: 'Secretaria de Estado da Educação nomeia RAFAEL XIMENES DA SILVA para comissão.',
+        data: '09/11/2024'
       }
     ],
     4: [ // Licitação - 3 resultados
@@ -1210,6 +1447,11 @@ export default function ExplorarPage() {
     const value = e.target.value;
     setDiarioOficialSearchTerm(value);
     
+    // Esconder filtros se o campo estiver vazio
+    if (!value.trim()) {
+      setShowFilters(false);
+    }
+    
     // Limpar resultados sempre que o texto for alterado
     setDiarioOficialSearchResults([]);
     setSelectedDiarioOficialId(null);
@@ -1250,6 +1492,17 @@ export default function ExplorarPage() {
     setSelectedDiarioOficialId(null);
     setShowDiarioOficialDetails(false);
     setCurrentDiarioOficialPage(1);
+    
+    // Limpar também o termo de busca dos Processos
+    setProcessoSearchTerm('');
+    setProcessoSearchResults([]);
+    
+    // Resetar flags de busca
+    setIsSearchingProcessos(false);
+    setIsSearchingDiarios(false);
+    
+    // Ocultar filtros quando não há resultados
+    setShowFilters(false);
   };
 
   const handleDiarioOficialSuggestionClick = (suggestion: string) => {
@@ -1261,7 +1514,7 @@ export default function ExplorarPage() {
     executeDiarioOficialSearch(suggestion);
   };
 
-  const handleDiarioOficialKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleDiarioOficialKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedDiarioOficialIndex(prev => 
@@ -1284,10 +1537,15 @@ export default function ExplorarPage() {
   };
 
   const executeDiarioOficialSearch = (searchTerm: string) => {
-    if (!searchTerm.trim()) return;
+    if (!searchTerm.trim() || isSearchingDiarios) return;
     
+    setIsSearchingDiarios(true);
     setIsDiarioOficialLoading(true);
     setDiarioOficialSearchResults([]);
+    setShowFilters(true); // Mostrar filtros quando houver busca
+    
+    // Sincronizar termo de busca nos Processos (apenas o termo, sem executar busca)
+    setProcessoSearchTerm(searchTerm);
     
     // Simular busca com delay
     setTimeout(() => {
@@ -1295,6 +1553,7 @@ export default function ExplorarPage() {
       console.log('Resultados de diários encontrados:', results);
       setDiarioOficialSearchResults(results);
       setIsDiarioOficialLoading(false);
+      setIsSearchingDiarios(false);
     }, 1500);
   };
 
@@ -1690,206 +1949,6 @@ export default function ExplorarPage() {
 
   const diariosDisponiveis = getDiariosDisponiveis();
 
-  // Mock data para Dashboard
-  const mockDashboardData = {
-    totalDiarios: 1247,
-    totalProcessos: 8934,
-    diariosHoje: 23,
-    processosHoje: 156,
-    recentDiarios: [
-      { 
-        id: 1, 
-        nome: 'Diário Oficial da União', 
-        data: '2024-01-18', 
-        edicao: '12348',
-        isDou: true,
-        secoes: [
-          { id: '1-1', nome: 'Seção 1 - Atos do Poder Executivo', edicao: '12348-1' },
-          { id: '1-2', nome: 'Seção 2 - Atos do Poder Legislativo', edicao: '12348-2' },
-          { id: '1-3', nome: 'Seção 3 - Concursos e Licitações', edicao: '12348-3' },
-          { id: '1-4', nome: 'Seção 4 - Atos do Poder Judiciário', edicao: '12348-4' }
-        ]
-      },
-      { 
-        id: 2, 
-        nome: 'Diário Oficial da União', 
-        data: '2024-01-17', 
-        edicao: '12347',
-        isDou: true,
-        secoes: [
-          { id: '2-1', nome: 'Seção 1 - Atos do Poder Executivo', edicao: '12347-1' },
-          { id: '2-2', nome: 'Seção 2 - Atos do Poder Legislativo', edicao: '12347-2' },
-          { id: '2-3', nome: 'Seção 3 - Concursos e Licitações', edicao: '12347-3' },
-          { id: '2-4', nome: 'Seção 4 - Atos do Poder Judiciário', edicao: '12347-4' }
-        ]
-      },
-      { 
-        id: 3, 
-        nome: 'Diário Oficial da União', 
-        data: '2024-01-16', 
-        edicao: '12346',
-        isDou: true,
-        secoes: [
-          { id: '3-1', nome: 'Seção 1 - Atos do Poder Executivo', edicao: '12346-1' },
-          { id: '3-2', nome: 'Seção 2 - Atos do Poder Legislativo', edicao: '12346-2' },
-          { id: '3-3', nome: 'Seção 3 - Concursos e Licitações', edicao: '12346-3' },
-          { id: '3-4', nome: 'Seção 4 - Atos do Poder Judiciário', edicao: '12346-4' }
-        ]
-      },
-      { 
-        id: 4, 
-        nome: 'Diário Oficial da União', 
-        data: '2024-01-15', 
-        edicao: '12345',
-        isDou: true,
-        secoes: [
-          { id: '4-1', nome: 'Seção 1 - Atos do Poder Executivo', edicao: '12345-1' },
-          { id: '4-2', nome: 'Seção 2 - Atos do Poder Legislativo', edicao: '12345-2' },
-          { id: '4-3', nome: 'Seção 3 - Concursos e Licitações', edicao: '12345-3' },
-          { id: '4-4', nome: 'Seção 4 - Atos do Poder Judiciário', edicao: '12345-4' }
-        ]
-      },
-      { 
-        id: 5, 
-        nome: 'Diário Oficial da União', 
-        data: '2024-01-14', 
-        edicao: '12344',
-        isDou: true,
-        secoes: [
-          { id: '5-1', nome: 'Seção 1 - Atos do Poder Executivo', edicao: '12344-1' },
-          { id: '5-2', nome: 'Seção 2 - Atos do Poder Legislativo', edicao: '12344-2' },
-          { id: '5-3', nome: 'Seção 3 - Concursos e Licitações', edicao: '12344-3' },
-          { id: '5-4', nome: 'Seção 4 - Atos do Poder Judiciário', edicao: '12344-4' }
-        ]
-      }
-    ],
-    recentProcessos: [
-      { id: 1, numero: '1234567-89.2024.1.01.0001', tribunal: 'TJSP', data: '2024-01-15' },
-      { id: 2, numero: '9876543-21.2024.1.02.0001', tribunal: 'TJRJ', data: '2024-01-15' },
-      { id: 3, numero: '5555555-55.2024.1.03.0001', tribunal: 'TJMG', data: '2024-01-15' },
-      { id: 4, numero: '1111111-11.2024.1.04.0001', tribunal: 'TJRS', data: '2024-01-15' },
-      { id: 5, numero: '9999999-99.2024.1.05.0001', tribunal: 'TJPR', data: '2024-01-15' }
-    ],
-    editaisDouHoje: [
-      {
-        id: '1',
-        titulo: 'CONCURSO PÚBLICO Nº 001/2024 - MINISTÉRIO DA EDUCAÇÃO - CARGO: PROFESSOR DE MATEMÁTICA',
-        fonte: 'DOU - Seção 3',
-        data: '15/01/2024',
-        termo: query,
-        tags: ['Concurso Público', 'Educação', 'Professor'],
-        temIA: true,
-        detalhes: {
-          numero: '001/2024',
-          orgao: 'Ministério da Educação',
-          cargos: [
-            { nome: 'Professor de Matemática', vagas: 50, salario: 'R$ 8.000,00' },
-            { nome: 'Professor de Física', vagas: 30, salario: 'R$ 8.000,00' },
-            { nome: 'Professor de Química', vagas: 25, salario: 'R$ 8.000,00' }
-          ],
-          dataInscricao: '20/01/2024 a 15/02/2024',
-          valorInscricao: 'R$ 120,00',
-          dataProva: '15/03/2024',
-          requisitos: 'Superior completo em Licenciatura',
-          localProva: 'Capitais e principais cidades',
-          totalVagas: 105
-        }
-      },
-      {
-        id: '2',
-        titulo: 'CONCURSO PÚBLICO Nº 002/2024 - MINISTÉRIO DA SAÚDE - CARGO: MÉDICO CLÍNICO GERAL',
-        fonte: 'DOU - Seção 3',
-        data: '15/01/2024',
-        termo: query,
-        tags: ['Concurso Público', 'Saúde', 'Médico'],
-        temIA: false,
-        detalhes: {
-          numero: '002/2024',
-          orgao: 'Ministério da Saúde',
-          cargos: [
-            { nome: 'Médico Clínico Geral', vagas: 100, salario: 'R$ 12.000,00' },
-            { nome: 'Médico Pediatra', vagas: 50, salario: 'R$ 12.000,00' },
-            { nome: 'Médico Ginecologista', vagas: 30, salario: 'R$ 12.000,00' }
-          ],
-          dataInscricao: '22/01/2024 a 20/02/2024',
-          valorInscricao: 'R$ 150,00',
-          dataProva: '20/03/2024',
-          requisitos: 'Superior completo em Medicina + CRM',
-          localProva: 'Capitais e principais cidades',
-          totalVagas: 180
-        }
-      },
-      {
-        id: '3',
-        titulo: 'CONCURSO PÚBLICO Nº 003/2024 - MINISTÉRIO DA FAZENDA - CARGO: AUDITOR FISCAL',
-        fonte: 'DOU - Seção 3',
-        data: '15/01/2024',
-        termo: query,
-        tags: ['Concurso Público', 'Fazenda', 'Auditor'],
-        temIA: true,
-        detalhes: {
-          numero: '003/2024',
-          orgao: 'Ministério da Fazenda',
-          cargos: [
-            { nome: 'Auditor Fiscal', vagas: 80, salario: 'R$ 15.000,00' },
-            { nome: 'Analista Tributário', vagas: 120, salario: 'R$ 10.000,00' }
-          ],
-          dataInscricao: '25/01/2024 a 25/02/2024',
-          valorInscricao: 'R$ 200,00',
-          dataProva: '25/03/2024',
-          requisitos: 'Superior completo em áreas afins',
-          localProva: 'Capitais e principais cidades',
-          totalVagas: 200
-        }
-      },
-      {
-        id: '4',
-        titulo: 'CONCURSO PÚBLICO Nº 004/2024 - MINISTÉRIO DA JUSTIÇA - CARGO: DELEGADO DE POLÍCIA',
-        fonte: 'DOU - Seção 3',
-        data: '15/01/2024',
-        termo: query,
-        tags: ['Concurso Público', 'Justiça', 'Delegado'],
-        temIA: false,
-        detalhes: {
-          numero: '004/2024',
-          orgao: 'Ministério da Justiça',
-          cargos: [
-            { nome: 'Delegado de Polícia', vagas: 60, salario: 'R$ 18.000,00' },
-            { nome: 'Perito Criminal', vagas: 40, salario: 'R$ 12.000,00' }
-          ],
-          dataInscricao: '28/01/2024 a 28/02/2024',
-          valorInscricao: 'R$ 180,00',
-          dataProva: '28/03/2024',
-          requisitos: 'Superior completo em Direito + OAB',
-          localProva: 'Capitais e principais cidades',
-          totalVagas: 100
-        }
-      },
-      {
-        id: '5',
-        titulo: 'CONCURSO PÚBLICO Nº 005/2024 - MINISTÉRIO DA DEFESA - CARGO: OFICIAL DE CHANCELARIA',
-        fonte: 'DOU - Seção 3',
-        data: '15/01/2024',
-        termo: query,
-        tags: ['Concurso Público', 'Defesa', 'Oficial'],
-        temIA: true,
-        detalhes: {
-          numero: '005/2024',
-          orgao: 'Ministério da Defesa',
-          cargos: [
-            { nome: 'Oficial de Chancelaria', vagas: 30, salario: 'R$ 14.000,00' },
-            { nome: 'Assistente de Chancelaria', vagas: 50, salario: 'R$ 8.500,00' }
-          ],
-          dataInscricao: '30/01/2024 a 02/03/2024',
-          valorInscricao: 'R$ 160,00',
-          dataProva: '02/04/2024',
-          requisitos: 'Superior completo em Relações Internacionais',
-          localProva: 'Capitais e principais cidades',
-          totalVagas: 80
-        }
-      }
-    ]
-  };
 
   // Mock data para Processos
   const mockProcessosData = {
@@ -1901,7 +1960,92 @@ export default function ExplorarPage() {
       { tribunal: 'TJRS', quantidade: 1234, percentual: 13.8 },
       { tribunal: 'TJPR', quantidade: 829, percentual: 9.3 }
     ],
-    processosRecentes: mockDashboardData.recentProcessos
+    processosRecentes: [
+      { id: 1, numero: '1234567-89.2024.1.01.0001', tribunal: 'TJSP', data: '2024-01-15' },
+      { id: 2, numero: '9876543-21.2024.1.02.0001', tribunal: 'TJRJ', data: '2024-01-15' },
+      { id: 3, numero: '5555555-55.2024.1.03.0001', tribunal: 'TJMG', data: '2024-01-15' },
+      { id: 4, numero: '1111111-11.2024.1.04.0001', tribunal: 'TJRS', data: '2024-01-15' },
+      { id: 5, numero: '9999999-99.2024.1.05.0001', tribunal: 'TJPR', data: '2024-01-15' }
+    ]
+  };
+
+  // Dados mockados para indicadores de concursos
+  const mockConcursosData = {
+    hoje: {
+      porDiario: [
+        { diario: 'Diário Oficial da União', quantidade: 12 },
+        { diario: 'Diário Oficial SP', quantidade: 8 },
+        { diario: 'Diário Oficial RJ', quantidade: 5 },
+        { diario: 'Diário Oficial MG', quantidade: 7 },
+        { diario: 'Diário Oficial RS', quantidade: 3 },
+        { diario: 'Diário Oficial PR', quantidade: 4 },
+        { diario: 'Diário Oficial SC', quantidade: 2 },
+        { diario: 'Diário Oficial BA', quantidade: 6 },
+        { diario: 'Diário Oficial GO', quantidade: 3 },
+        { diario: 'Diário Oficial PE', quantidade: 4 }
+      ],
+      porPoder: [
+        { poder: 'Executivo', quantidade: 28 },
+        { poder: 'Judiciário', quantidade: 15 },
+        { poder: 'Legislativo', quantidade: 8 },
+        { poder: 'Ministério Público', quantidade: 4 }
+      ],
+      porEsfera: [
+        { esfera: 'Federal', quantidade: 25 },
+        { esfera: 'Estadual', quantidade: 18 },
+        { esfera: 'Municipal', quantidade: 12 }
+      ]
+    },
+    ultimos7dias: {
+      porDiario: [
+        { diario: 'Diário Oficial da União', quantidade: 85 },
+        { diario: 'Diário Oficial SP', quantidade: 62 },
+        { diario: 'Diário Oficial RJ', quantidade: 45 },
+        { diario: 'Diário Oficial MG', quantidade: 52 },
+        { diario: 'Diário Oficial RS', quantidade: 38 },
+        { diario: 'Diário Oficial PR', quantidade: 41 },
+        { diario: 'Diário Oficial SC', quantidade: 29 },
+        { diario: 'Diário Oficial BA', quantidade: 47 },
+        { diario: 'Diário Oficial GO', quantidade: 23 },
+        { diario: 'Diário Oficial PE', quantidade: 31 }
+      ],
+      porPoder: [
+        { poder: 'Executivo', quantidade: 198 },
+        { poder: 'Judiciário', quantidade: 112 },
+        { poder: 'Legislativo', quantidade: 67 },
+        { poder: 'Ministério Público', quantidade: 34 }
+      ],
+      porEsfera: [
+        { esfera: 'Federal', quantidade: 185 },
+        { esfera: 'Estadual', quantidade: 142 },
+        { esfera: 'Municipal', quantidade: 84 }
+      ]
+    },
+    ultimos30dias: {
+      porDiario: [
+        { diario: 'Diário Oficial da União', quantidade: 342 },
+        { diario: 'Diário Oficial SP', quantidade: 268 },
+        { diario: 'Diário Oficial RJ', quantidade: 198 },
+        { diario: 'Diário Oficial MG', quantidade: 234 },
+        { diario: 'Diário Oficial RS', quantidade: 167 },
+        { diario: 'Diário Oficial PR', quantidade: 189 },
+        { diario: 'Diário Oficial SC', quantidade: 134 },
+        { diario: 'Diário Oficial BA', quantidade: 201 },
+        { diario: 'Diário Oficial GO', quantidade: 98 },
+        { diario: 'Diário Oficial PE', quantidade: 125 }
+      ],
+      porPoder: [
+        { poder: 'Executivo', quantidade: 742 },
+        { poder: 'Judiciário', quantidade: 445 },
+        { poder: 'Legislativo', quantidade: 267 },
+        { poder: 'Ministério Público', quantidade: 138 }
+      ],
+      porEsfera: [
+        { esfera: 'Federal', quantidade: 687 },
+        { esfera: 'Estadual', quantidade: 534 },
+        { esfera: 'Municipal', quantidade: 371 }
+      ]
+    }
   };
 
   const mockEditaisLicitação = [
@@ -2124,17 +2268,6 @@ export default function ExplorarPage() {
                   )}
                   
                   <button
-                    onClick={() => handleTabChange('dashboard')}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base ${
-                      activeTab === 'dashboard'
-                        ? 'bg-blue-600/30 text-blue-200 border-blue-500/40'
-                        : 'bg-transparent text-gray-300 border-transparent hover:bg-blue-500/10 hover:text-blue-200 hover:border-blue-400/30'
-                    }`}
-                  >
-                    Dashboard
-                  </button>
-                  
-                  <button
                     onClick={() => handleTabChange('processos')}
                     className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base ${
                       activeTab === 'processos'
@@ -2158,7 +2291,7 @@ export default function ExplorarPage() {
             </div>
             
             {/* Filtros - Apenas para Processos e Diários Oficiais */}
-            {(activeTab === 'processos' || activeTab === 'diarios') && (
+            {(activeTab === 'processos' || activeTab === 'diarios') && showFilters && (
               <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6 mt-6">
                 <h2 className="text-lg font-semibold text-white mb-4">Filtros</h2>
                 
@@ -2360,7 +2493,7 @@ export default function ExplorarPage() {
                   {!showTudoDetails ? (
                     <>
                       <h3 className="text-lg font-semibold text-white mb-4">
-                        Foram encontrados 50 resultados para o termo "{query}"
+                        Foram encontrados 50 resultados para o termo &quot;{query}&quot;
                       </h3>
 
                       {/* Feed Misto - Cards intercalados */}
@@ -2809,473 +2942,15 @@ export default function ExplorarPage() {
                 </div>
               )}
 
-              {activeTab === 'dashboard' && (
-                <div className="space-y-6 fade-in" key="dashboard">
-                  {/* Cards de Estatísticas */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <button 
-                      onClick={() => setSelectedCard('diarios')}
-                      className={`bg-white/3 backdrop-blur-sm border rounded-2xl p-6 hover:bg-white/5 transition-all duration-200 cursor-pointer ${
-                        selectedCard === 'diarios' 
-                          ? 'border-purple-400/50 bg-purple-500/10' 
-                          : 'border-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10">
-                            <svg className="h-6 w-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-300">Diários Oficiais</p>
-                          <p className="text-2xl font-bold text-white">2.502</p>
-                        </div>
-                      </div>
-                    </button>
 
-                    <button 
-                      onClick={() => setSelectedCard('concurso')}
-                      className={`bg-white/3 backdrop-blur-sm border rounded-2xl p-6 hover:bg-white/5 transition-all duration-200 cursor-pointer ${
-                        selectedCard === 'concurso' 
-                          ? 'border-blue-400/50 bg-blue-500/10' 
-                          : 'border-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
-                            <svg className="h-6 w-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-300">Novos editais de concurso público</p>
-                          <p className="text-2xl font-bold text-white">5</p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
 
-                  {/* Seção de Editais */}
-                  <div className="mb-6">
-                    {selectedCard === 'concurso' ? (
-                      <div id="concursos-section" className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-lg font-semibold text-white">
-                            Novos concursos públicos
-                          </h3>
-                          <div className="flex items-center space-x-3">
-                            <span className="text-sm text-gray-400 bg-gray-600/30 px-3 py-1 rounded-full">
-                              {selectedDiario}
-                            </span>
-                            <span className="text-sm text-gray-400 bg-gray-600/30 px-3 py-1 rounded-full">
-                              {selectedPoder}
-                            </span>
-                            <span className="text-sm text-gray-400 bg-gray-600/30 px-3 py-1 rounded-full">
-                              {selectedEsfera}
-                            </span>
-                            <span className="text-sm text-gray-400 bg-gray-600/30 px-3 py-1 rounded-full">
-                              {selectedPeriodo === 'hoje' ? 'Hoje' : selectedPeriodo === '7dias' ? 'Últimos 7 dias' : 'Últimos 30 dias'}
-                            </span>
-                          </div>
-                        </div>
-        <div className="space-y-4">
-                          {/* Primeiro concurso - sempre visível */}
-                          {mockDashboardData.editaisDouHoje.slice(0, 1).map((edital) => (
-                            <div key={edital.id} className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer">
-                              <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                                  <h4 className="text-sm font-medium text-white mb-2 line-clamp-2">
-                                    {edital.titulo}
-                                  </h4>
-                                  <div className="flex items-center space-x-4 text-xs text-gray-400">
-                                    <span>{edital.fonte}</span>
-                                    <span>{edital.data}</span>
-                                  </div>
-                                </div>
-                                <button 
-                                  onClick={() => setExpandedConcurso(expandedConcurso === edital.id ? null : edital.id)}
-                                  className="ml-4 px-3 py-1.5 bg-gray-500/20 text-gray-300 rounded-lg hover:bg-gray-500/30 transition-colors cursor-pointer text-xs"
-                                >
-                                  {expandedConcurso === edital.id ? 'Ocultar detalhes' : 'Ver detalhes'}
-                                </button>
-                              </div>
-                              
-                              {/* Detalhes expandidos do concurso */}
-                              {expandedConcurso === edital.id && edital.detalhes && (
-                                <div className="mt-4 pt-4 border-t border-white/10">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                      <h5 className="text-sm font-semibold text-white mb-2">Informações Gerais</h5>
-                                      <div className="space-y-3 text-xs">
-                                        <div className="flex items-center">
-                                          <span className="text-gray-400 w-24">Número:</span>
-                                          <span className="text-white">{edital.detalhes.numero}</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                          <span className="text-gray-400 w-24">Órgão:</span>
-                                          <span className="text-white">{edital.detalhes.orgao}</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                          <span className="text-gray-400 w-24">Total de Vagas:</span>
-                                          <span className="text-white">{edital.detalhes.totalVagas}</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                          <span className="text-gray-400 w-24">Data da Prova:</span>
-                                          <span className="text-white">{edital.detalhes.dataProva}</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                          <span className="text-gray-400 w-24">Valor da Inscrição:</span>
-                                          <span className="text-white">{edital.detalhes.valorInscricao}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div>
-                                      <h5 className="text-sm font-semibold text-white mb-2">Cargos e Vagas</h5>
-                                      <div className="space-y-2">
-                                        {edital.detalhes.cargos.map((cargo, index) => (
-                                          <div key={index} className="bg-white/5 rounded p-2">
-                                            <div className="text-xs text-white font-medium">{cargo.nome}</div>
-                                            <div className="flex justify-between text-xs text-gray-400 mt-1">
-                                              <span>{cargo.vagas} vagas</span>
-                                              <span>{cargo.salario}</span>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="mt-4 pt-4 border-t border-white/10">
-                                    <div className="space-y-3 text-xs">
-                                      <div className="flex items-center">
-                                        <span className="text-gray-400 w-32">Período de Inscrição:</span>
-                                        <span className="text-white">{edital.detalhes.dataInscricao}</span>
-                                      </div>
-                                      <div className="flex items-center">
-                                        <span className="text-gray-400 w-32">Local da Prova:</span>
-                                        <span className="text-white">{edital.detalhes.localProva}</span>
-                                      </div>
-                                      <div className="flex items-start">
-                                        <span className="text-gray-400 w-32">Requisitos:</span>
-                                        <span className="text-white">{edital.detalhes.requisitos}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
 
-                          {/* Concursos bloqueados com blur (próximos 4) */}
-                          {mockDashboardData.editaisDouHoje.slice(1, showMoreConcursos ? 6 : 5).map((edital) => (
-                            <div key={edital.id} className="relative bg-white/5 rounded-lg p-4 overflow-hidden">
-                              {/* Conteúdo borrado */}
-                              <div className="blur-sm">
-                                <h4 className="text-sm font-medium text-white mb-2 line-clamp-2">
-                                  {edital.titulo}
-                                </h4>
-                                <div className="flex items-center space-x-4 text-xs text-gray-400">
-                                  <span>{edital.fonte}</span>
-                                  <span>{edital.data}</span>
-                                </div>
-                              </div>
-                              
-                              {/* Botão de revelar - fora do blur */}
-                              <div className="absolute inset-0 flex items-center justify-center z-20">
-                                <button
-                                  onClick={() => setIsTestModalOpen(true)}
-                                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl border-0 outline-none cursor-pointer"
-                                  style={{ 
-                                    opacity: 1,
-                                    backgroundColor: 'transparent',
-                                    backgroundImage: 'linear-gradient(to right, #3b82f6, #2563eb)'
-                                  }}
-                                >
-                                  Revelar
-                                </button>
-                              </div>
-                            </div>
-                          ))}
 
-                          {/* Concursos adicionais após "Mostrar mais" */}
-                          {showMoreConcursos && mockDashboardData.editaisDouHoje.slice(5, 10).map((edital) => (
-                            <div key={edital.id} className="relative bg-white/5 rounded-lg p-4 overflow-hidden">
-                              {/* Conteúdo borrado */}
-                              <div className="blur-sm">
-                                <h4 className="text-sm font-medium text-white mb-2 line-clamp-2">
-                                  {edital.titulo}
-                                </h4>
-                                <div className="flex items-center space-x-4 text-xs text-gray-400">
-                                  <span>{edital.fonte}</span>
-                                  <span>{edital.data}</span>
-                                </div>
-                              </div>
-                              
-                              {/* Botão de revelar - fora do blur */}
-                              <div className="absolute inset-0 flex items-center justify-center z-20">
-                                <button
-                                  onClick={() => setIsTestModalOpen(true)}
-                                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl border-0 outline-none cursor-pointer"
-                                  style={{ 
-                                    opacity: 1,
-                                    backgroundColor: 'transparent',
-                                    backgroundImage: 'linear-gradient(to right, #3b82f6, #2563eb)'
-                                  }}
-                                >
-                                  Revelar
-                                </button>
-                              </div>
-                            </div>
-                          ))}
 
-                          {/* Botão Mostrar mais/menos */}
-                          {mockDashboardData.editaisDouHoje.length > 5 && (
-                            <div className="text-center pt-2">
-                              {!showMoreConcursos ? (
-                                <button
-                                  onClick={handleShowMoreConcursos}
-                                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
-                                >
-                                  Mostrar mais
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={handleShowLessConcursos}
-                                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
-                                >
-                                  Mostrar menos
-                                </button>
-                              )}
-                            </div>
-                          )}
 
-                          {/* Label de concursos restantes */}
-                          {!showMoreConcursos && mockDashboardData.editaisDouHoje.length > 5 && (
-                            <div className="text-center pt-2">
-                              <span className="text-sm text-gray-400">
-                                +{mockDashboardData.editaisDouHoje.length - 5} concursos hoje
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : selectedCard === 'diarios' ? (
-                      <div id="diarios-section" className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-lg font-semibold text-white">
-                            Diários Oficiais
-                    </h3>
-                          <div className="flex items-center space-x-3">
-                            <span className="text-sm text-gray-400 bg-gray-600/30 px-3 py-1 rounded-full">
-                              {selectedPoder}
-                            </span>
-                            <span className="text-sm text-gray-400 bg-gray-600/30 px-3 py-1 rounded-full">
-                              {selectedEsfera}
-                            </span>
-                            <span className="text-sm text-gray-400 bg-gray-600/30 px-3 py-1 rounded-full">
-                              {selectedPeriodo === 'hoje' ? 'Hoje' : selectedPeriodo === '7dias' ? 'Últimos 7 dias' : 'Últimos 30 dias'}
-                            </span>
-                          </div>
-                        </div>
-                  
-                        <div className="space-y-4">
-                          {/* Estatísticas dos Diários Oficiais */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div className="bg-white/5 rounded-lg p-4">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                                    <svg className="h-5 w-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                    </svg>
-                                  </div>
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium text-gray-300">Total de Diários</p>
-                                  <p className="text-xl font-bold text-white">2.502</p>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="bg-white/5 rounded-lg p-4">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-                                    <svg className="h-5 w-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                  </div>
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium text-gray-300">Atualizados hoje</p>
-                                  <p className="text-xl font-bold text-white">1.847</p>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="bg-white/5 rounded-lg p-4">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10">
-                                    <svg className="h-5 w-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                  </div>
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium text-gray-300">Última atualização</p>
-                                  <p className="text-sm font-bold text-white">18/01/2025 14:30</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
 
-                          {/* Lista de Diários por Esfera */}
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-white mb-3">Diários por Esfera</h4>
-                            
-                            {/* Federal */}
-                            <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <div className="flex-shrink-0">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                                      <svg className="h-4 w-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                      </svg>
-                                    </div>
-                                  </div>
-                                  <div className="ml-3">
-                                    <h5 className="text-sm font-medium text-white">Diário Oficial da União</h5>
-                                    <p className="text-xs text-gray-400">Federal • Executivo</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-semibold text-white">1 ativo</p>
-                                  <p className="text-xs text-gray-400">5 novas edições hoje</p>
-                                </div>
-                              </div>
-                            </div>
 
-                            {/* Estadual */}
-                            <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <div className="flex-shrink-0">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
-                                      <svg className="h-4 w-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                      </svg>
-                                    </div>
-                                  </div>
-                                  <div className="ml-3">
-                                    <h5 className="text-sm font-medium text-white">Diários Estaduais</h5>
-                                    <p className="text-xs text-gray-400">Estadual • Executivo/Legislativo/Judiciário</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-semibold text-white">27 ativos</p>
-                                  <p className="text-xs text-gray-400">120 novas edições hoje</p>
-                                </div>
-                              </div>
-                            </div>
 
-                            {/* Municipal */}
-                            <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <div className="flex-shrink-0">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
-                                      <svg className="h-4 w-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                      </svg>
-                                    </div>
-                                  </div>
-                                  <div className="ml-3">
-                                    <h5 className="text-sm font-medium text-white">Diários Municipais</h5>
-                                    <p className="text-xs text-gray-400">Municipal • Executivo</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-semibold text-white">1.819 ativos</p>
-                                  <p className="text-xs text-gray-400">1.700 novas edições hoje</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* Diários Recentes */}
-                  <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">Diários Recentes</h3>
-                      <div className="space-y-3">
-                        {mockDashboardData.recentDiarios.map((diario) => (
-                          <div key={diario.id} className="bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                            <div className="p-4 min-h-[60px] flex items-center">
-                              <div className="flex items-center justify-between w-full">
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-white">{diario.nome}</p>
-                                  <p className="text-xs text-gray-400">Edição {diario.edicao} - {diario.data}</p>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  <span className="text-sm font-semibold text-blue-300 bg-blue-500/20 px-3 py-1.5 rounded-md">{diario.data}</span>
-                                  <button 
-                                    onClick={() => setExpandedDou(expandedDou === diario.id.toString() ? null : diario.id.toString())}
-                                    className="flex items-center justify-center w-8 h-8 bg-gray-500/20 hover:bg-gray-500/30 rounded-lg transition-colors cursor-pointer"
-                                    title="Ver seções do DOU"
-                                  >
-                                    <svg 
-                                      className={`w-4 h-4 text-gray-300 transition-transform ${expandedDou === diario.id.toString() ? 'rotate-180' : ''}`} 
-                                      fill="none" 
-                                      stroke="currentColor" 
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-                                  </button>
-              </div>
-                              </div>
-                            </div>
-                              
-                              {/* Seções do DOU (expandidas) */}
-                              {expandedDou === diario.id.toString() && (
-                                <div className="mt-3 pt-3 border-t border-white/10">
-                                  <p className="text-xs text-gray-400 mb-2">Seções disponíveis:</p>
-                                  <div className="space-y-2">
-                                    {diario.secoes.map((secao) => (
-                                      <div key={secao.id} className="flex items-center justify-between p-2 bg-white/5 rounded-md hover:bg-white/10 transition-colors">
-                                        <div className="flex-1">
-                                          <p className="text-xs font-medium text-white">{secao.nome}</p>
-                                          <p className="text-xs text-gray-400">Edição {secao.edicao}</p>
-                                        </div>
-                                        <button 
-                                          className="flex items-center justify-center w-6 h-6 bg-gray-500/20 hover:bg-gray-500/30 rounded-md transition-colors cursor-pointer"
-                                          title="Download da seção"
-                                        >
-                                          <svg className="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                          </svg>
-              </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
               {activeTab === 'processos' && (
                 <div className="space-y-6 fade-in" key="processos">
@@ -3284,7 +2959,7 @@ export default function ExplorarPage() {
                     <h3 className="text-lg font-semibold text-white mb-4">Pesquisa processos nos Diários de Justiça</h3>
                     
                     {/* Campo de Busca */}
-                    <div ref={processoAnchorRef} className="relative z-10 w-full mb-4">
+                    <div ref={processoAnchorRef as React.RefObject<HTMLDivElement>} className="relative z-10 w-full mb-4">
                       <input
                         type="text"
                         placeholder="Digite seu nome ou número de processo"
@@ -3317,7 +2992,7 @@ export default function ExplorarPage() {
                       
                       {/* Botão de Busca */}
                       <button
-                        onClick={handleProcessoSearch}
+                        onClick={() => handleProcessoSearch()}
                         className="absolute top-1/2 right-2 transform -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full transition-all duration-200 group flex items-center justify-center cursor-pointer"
                         type="button"
                         aria-label="Buscar"
@@ -3340,7 +3015,7 @@ export default function ExplorarPage() {
 
                   {/* Autocomplete Portal */}
                   <AutocompletePortal
-                    anchorRef={processoAnchorRef}
+                    anchorRef={processoAnchorRef as React.RefObject<HTMLElement>}
                     open={showProcessoSuggestions}
                     items={processoSuggestionsForPortal}
                     onSelect={(item) => handleProcessoSuggestionClick(item.text)}
@@ -3439,13 +3114,6 @@ export default function ExplorarPage() {
                                       </div>
                                     </div>
                                   </div>
-                                  <button className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs flex items-center gap-1">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    Ver processo
-                    </button>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
@@ -3598,7 +3266,7 @@ export default function ExplorarPage() {
                         // Exibir lista de resultados
                         <div>
                           <h3 className="text-lg font-semibold text-white mb-4">
-                            Encontramos {processoSearchResults.length.toLocaleString('pt-BR')} resultados de "{processoSearchTerm}"
+                            Encontramos {processoSearchResults.length.toLocaleString('pt-BR')} resultados de &quot;{processoSearchTerm}&quot;
                           </h3>
                           <div className="space-y-3">
                             {processoSearchResults.map((processo) => (
@@ -3638,7 +3306,7 @@ export default function ExplorarPage() {
                     <h3 className="text-lg font-semibold text-white mb-4">Pesquisa termos nos Diários Oficiais</h3>
                     
                     {/* Campo de Busca */}
-                    <div ref={diarioOficialAnchorRef} className="relative z-10 w-full mb-4">
+                    <div ref={diarioOficialAnchorRef as React.RefObject<HTMLDivElement>} className="relative z-10 w-full mb-4">
                       <input
                         type="text"
                         placeholder="Digite um CPF, CNPJ, nome de pessoa ou nome de empresa"
@@ -3695,7 +3363,7 @@ export default function ExplorarPage() {
 
                   {/* Autocomplete Portal */}
                   <AutocompletePortal
-                    anchorRef={diarioOficialAnchorRef}
+                    anchorRef={diarioOficialAnchorRef as React.RefObject<HTMLElement>}
                     open={showDiarioOficialSuggestions}
                     items={diarioOficialSuggestionsForPortal}
                     onSelect={(item) => handleDiarioOficialSuggestionClick(item.text)}
@@ -3765,130 +3433,71 @@ export default function ExplorarPage() {
                           <div className="space-y-4">
                             {getCurrentDiariosOficiais().map((diario) => (
                               <div key={diario.id} className="bg-white/5 rounded-lg p-6">
-                                {/* Template para Rafael Ximenes */}
-                                {diario.termoProcurado ? (
-                                  <>
-                                    {/* Header com botão alinhado à direita */}
-                                    <div className="flex items-center justify-between mb-4 text-xs">
-                                      <div className="flex items-center gap-3">
-                                        <svg className="h-4 w-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs flex-1">
+                                  <div className="flex items-start gap-2">
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
+                                    </div>
                                         <div>
-                                          <span className="text-gray-400 block">Termo procurado:</span>
-                                          <p className="text-white font-medium">{diario.termoProcurado}</p>
+                                      <span className="text-gray-400 block">Termo</span>
+                                      <p className="text-white font-medium">{(diario as any).termo || (diario as any).termoProcurado || 'N/A'}</p>
                                         </div>
                                       </div>
-                                      <button className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs">
-                                        Visualizar diário oficial
-                                      </button>
-                                    </div>
-
-                                    {/* Fonte da publicação */}
-                                    <div className="flex items-center gap-3 mb-4 text-xs">
-                                      <svg className="h-4 w-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  <div className="flex items-start gap-2">
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                       </svg>
+                                    </div>
                                       <div>
-                                        <span className="text-gray-400 block">Fonte da publicação:</span>
-                                        <p className="text-white">{diario.fonte}</p>
+                                      <span className="text-gray-400 block">Diário</span>
+                                      <p className="text-white font-medium">{(diario as any).diario || (diario as any).fonte || 'N/A'}</p>
                                       </div>
                                     </div>
                                     
-                                    <div className="mb-4 text-xs">
-                                      <div className="flex items-center gap-3 mb-2">
-                                        <svg className="h-4 w-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <span className="text-gray-400">Trecho da publicação:</span>
-                                      </div>
-                                      <p className="text-white leading-relaxed">
-                                        {diario.trecho.split(new RegExp(`(${diario.termoProcurado})`, 'gi')).map((part, i) => 
-                                          part.toLowerCase() === diario.termoProcurado.toLowerCase() ? (
-                                            <span key={i} className="bg-yellow-300 text-black px-1 rounded font-medium">{part.toLowerCase()}</span>
-                                          ) : (
-                                            <span key={i}>{part}</span>
-                                          )
-                                        )}
-                                      </p>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-3 text-xs">
-                                      <svg className="h-4 w-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <div className="flex items-start gap-2">
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                       </svg>
-                                      <div>
-                                        <span className="text-gray-400 block">Data da publicação:</span>
-                                        <p className="text-white">{diario.data}</p>
-                                      </div>
-                                    </div>
-                                  </>
-                                ) : (
-                                  // Template original para outros diários
-                                  <>
-                                    <h4 className="text-base font-semibold text-white mb-3">{diario.titulo}</h4>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-                                      <div>
-                                        <span className="text-gray-400">Diário:</span>
-                                        <p className="text-white">{diario.diario}</p>
                                       </div>
                                       <div>
-                                        <span className="text-gray-400">Data:</span>
-                                        <p className="text-white">{diario.data}</p>
+                                      <span className="text-gray-400 block">Data</span>
+                                      <p className="text-white font-medium">{diario.data}</p>
                                       </div>
-                                      <div>
-                                        <span className="text-gray-400">Seção:</span>
-                                        <p className="text-white">{diario.secao}</p>
                                       </div>
-                                      <div>
-                                        <span className="text-gray-400">Edição:</span>
-                                        <p className="text-white">{diario.edicao}</p>
                                       </div>
+                                  <button className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs ml-4">
+                                    Visualizar Diário
+                                  </button>
                                     </div>
                                     
-                                    <div className="mb-4">
-                                      <span className="text-gray-400 block mb-2">Conteúdo:</span>
-                                      <p className="text-white text-sm leading-relaxed">{diario.conteudo}</p>
+                                <div className="mt-4">
+                                  <div className="flex items-start gap-2 mb-2">
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
                                     </div>
-                                    
-                                    {/* Informações adicionais baseadas no tipo */}
-                                    {diario.orgao && (
-                                      <div className="border-t border-white/10 pt-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                          <div>
-                                            <span className="text-gray-400">Órgão:</span>
-                                            <p className="text-white">{diario.orgao}</p>
+                                    <span className="text-gray-400 text-xs">Trecho da Publicação</span>
                                           </div>
-                                          {diario.cargo && (
-                                            <div>
-                                              <span className="text-gray-400">Cargo:</span>
-                                              <p className="text-white">{diario.cargo}</p>
+                                  <div className="bg-gray-800/50 rounded-lg p-3">
+                                    <p className="text-sm text-gray-300 leading-relaxed">
+                                      {((diario as any).trecho || '').split(new RegExp(`(${(diario as any).termo || (diario as any).termoProcurado || ''})`, 'gi')).map((part: string, i: number) => {
+                                        const termo = (diario as any).termo || (diario as any).termoProcurado || '';
+                                        const isMatch = part.toLowerCase() === termo.toLowerCase();
+                                        return isMatch ? (
+                                          <mark key={i} className="bg-yellow-300 text-black px-1 rounded font-medium">{termo}</mark>
+                                        ) : (
+                                          <span key={i}>{part}</span>
+                                        );
+                                      })}
+                                    </p>
                                             </div>
-                                          )}
-                                          {diario.salario && (
-                                            <div>
-                                              <span className="text-gray-400">Salário:</span>
-                                              <p className="text-white">{diario.salario}</p>
                                             </div>
-                                          )}
-                                          {diario.modalidade && (
-                                            <div>
-                                              <span className="text-gray-400">Modalidade:</span>
-                                              <p className="text-white">{diario.modalidade}</p>
-                                            </div>
-                                          )}
-                                          {diario.valorEstimado && (
-                                            <div>
-                                              <span className="text-gray-400">Valor Estimado:</span>
-                                              <p className="text-white">{diario.valorEstimado}</p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
                               </div>
                             ))}
         </div>
@@ -3941,25 +3550,45 @@ export default function ExplorarPage() {
                         // Lista de resultados
                         <div>
                           <h4 className="text-lg font-semibold text-white mb-4">
-                            Encontramos {diarioOficialSearchResults.length} resultados de "{diarioOficialSearchTerm}"
+                            Encontramos {diarioOficialSearchResults.length} resultados de &quot;{diarioOficialSearchTerm}&quot;
                           </h4>
                           
                           <div className="space-y-4">
-                            {diarioOficialSearchResults.map((resultado) => (
+                            {diarioOficialSearchResults.map((resultado) => {
+                              return (
                               <div key={resultado.id} className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className="flex items-center gap-2 mb-2">
                                       <h4 className="text-sm font-medium text-white line-clamp-2">{resultado.nome || resultado.titulo}</h4>
                                       <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full text-xs font-medium">
                                         {resultado.resultados || 'N/A'} resultados
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-4 text-xs text-gray-400 mb-2">
-                                      <span>{resultado.diario}</span>
-                                      <span>{resultado.data}</span>
+                                      <div className="mb-2">
+                                        <p className="text-xs text-gray-400 mb-1">Encontrado em:</p>
+                                        <div className="flex flex-wrap gap-1">
+                                          {resultado.diarios && resultado.diarios.length > 0 ? (
+                                            <>
+                                              {resultado.diarios.slice(0, 3).map((diario: string, index: number) => (
+                                                <span key={index} className="text-xs text-gray-300 bg-gray-700/30 px-2 py-1 rounded">
+                                                  {diario}
+                                                </span>
+                                              ))}
+                                              {resultado.diarios.length > 3 && (
+                                                <span className="text-xs text-gray-400 px-2 py-1">
+                                                  e mais {resultado.diarios.length - 3}...
+                                                </span>
+                                              )}
+                                            </>
+                                          ) : (
+                                            <span className="text-xs text-gray-400">
+                                              {resultado.diario}
+                                            </span>
+                                          )}
                                     </div>
-                                    <p className="text-xs text-gray-300 line-clamp-2">{resultado.conteudo}</p>
+                                        <p className="text-xs text-gray-300">{resultado.conteudo}</p>
+                                      </div>
                                   </div>
                                   <button 
                                     onClick={() => handleDiarioOficialDetails(resultado.id)}
@@ -3969,7 +3598,8 @@ export default function ExplorarPage() {
                                   </button>
                                 </div>
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -3990,5 +3620,13 @@ export default function ExplorarPage() {
       />
 
     </div>
+  );
+}
+
+export default function ExplorarPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ExplorarContent />
+    </Suspense>
   );
 }

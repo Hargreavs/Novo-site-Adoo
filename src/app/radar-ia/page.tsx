@@ -65,7 +65,7 @@ interface Monitoring {
   contextIcon: string;
   contextColor: string;
   createdAt: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'disabled';
   totalFound: number;
   lastFound: string;
   configurations: any;
@@ -76,20 +76,31 @@ interface Monitoring {
   selectedPredefinedRange: string;
   newCount: number;
   lastSeenCount: number;
+  // Propriedades adicionais para compatibilidade
+  title?: string;
+  description?: string;
+  isActive?: boolean;
+  contextType?: 'concursos' | 'licitacoes' | 'leis';
+  selectedCategoria?: string;
 }
 
 export default function RadarIA() {
   const [selectedContext, setSelectedContext] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [editingMonitoring, setEditingMonitoring] = useState<Monitoring | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingMonitoringId, setDeletingMonitoringId] = useState<string | null>(null);
   const [monitorings, setMonitorings] = useState<Monitoring[]>([
     {
       id: '1',
-      contextType: 'concursos',
-      title: 'Concursos Públicos - Educação',
+      contextId: 'concursos',
+      contextName: 'Concursos Públicos - Educação',
+      contextIcon: '🎓',
+      contextColor: 'blue',
       createdAt: '2024-01-10',
       status: 'active',
-      totalFound: 12,
+      totalFound: 5,
       lastFound: '2024-01-15',
       configurations: {
         diarios: ['DOU', 'DOSP'],
@@ -137,6 +148,69 @@ export default function RadarIA() {
             linkEdital: '#',
             resumo: 'Concurso para analista judiciário'
           }
+        },
+        {
+          id: '3',
+          contextType: 'concursos',
+          title: 'Concurso Público - Prefeitura Municipal',
+          date: '2024-01-12',
+          source: 'DOM',
+          url: '#',
+          isRead: false,
+          details: {
+            instituicao: 'Prefeitura Municipal',
+            cargos: ['Agente Administrativo', 'Assistente Social'],
+            vagas: 30,
+            salario: 'R$ 2.800,00',
+            inscricaoInicio: '2024-01-15',
+            inscricaoFim: '2024-02-15',
+            taxaInscricao: 'R$ 60,00',
+            dataProva: '2024-03-05',
+            linkEdital: '#',
+            resumo: 'Concurso para cargos administrativos municipais'
+          }
+        },
+        {
+          id: '4',
+          contextType: 'concursos',
+          title: 'Concurso Público - Polícia Civil',
+          date: '2024-01-10',
+          source: 'DOU',
+          url: '#',
+          isRead: true,
+          details: {
+            instituicao: 'Polícia Civil',
+            cargos: ['Delegado', 'Investigador'],
+            vagas: 15,
+            salario: 'R$ 8.000,00',
+            inscricaoInicio: '2024-01-12',
+            inscricaoFim: '2024-02-12',
+            taxaInscricao: 'R$ 150,00',
+            dataProva: '2024-03-20',
+            linkEdital: '#',
+            resumo: 'Concurso para cargos na polícia civil'
+          }
+        },
+        {
+          id: '5',
+          contextType: 'concursos',
+          title: 'Concurso Público - Ministério Público',
+          date: '2024-01-08',
+          source: 'DOU',
+          url: '#',
+          isRead: false,
+          details: {
+            instituicao: 'Ministério Público',
+            cargos: ['Promotor de Justiça'],
+            vagas: 8,
+            salario: 'R$ 12.000,00',
+            inscricaoInicio: '2024-01-10',
+            inscricaoFim: '2024-02-10',
+            taxaInscricao: 'R$ 200,00',
+            dataProva: '2024-03-25',
+            linkEdital: '#',
+            resumo: 'Concurso para promotor de justiça'
+          }
         }
       ],
       selectedDiarios: ['DOU', 'DOSP'],
@@ -148,10 +222,12 @@ export default function RadarIA() {
     },
     {
       id: '2',
-      contextType: 'licitacoes',
-      title: 'Licitações - Tecnologia',
+      contextId: 'licitacoes',
+      contextName: 'Licitações - Tecnologia',
+      contextIcon: '💻',
+      contextColor: 'green',
       createdAt: '2024-01-08',
-      status: 'active',
+      status: 'disabled',
       totalFound: 8,
       lastFound: '2024-01-14',
       configurations: {
@@ -194,10 +270,12 @@ export default function RadarIA() {
     },
     {
       id: '3',
-      contextType: 'leis',
-      title: 'Leis e Legislação - Municipal',
+      contextId: 'leis',
+      contextName: 'Leis e Legislação - Municipal',
+      contextIcon: '⚖️',
+      contextColor: 'purple',
       createdAt: '2024-01-05',
-      status: 'inactive',
+      status: 'disabled',
       totalFound: 5,
       lastFound: '2024-01-12',
       configurations: {
@@ -220,7 +298,9 @@ export default function RadarIA() {
             numero: '5.432',
             ano: 2024,
             ementa: 'Dispõe sobre a criação de cargos efetivos',
-            linkNorma: '#',
+            assuntos: ['Administração Pública', 'Cargos Efetivos'],
+            dataPublicacao: '2024-01-12',
+            linkPublicacao: '#',
             resumo: 'Lei que cria novos cargos na estrutura municipal'
           }
         }
@@ -301,20 +381,6 @@ export default function RadarIA() {
       icon: '🎯',
       color: 'from-blue-500 to-indigo-600'
     },
-    {
-      id: 'licitacoes',
-      title: 'Licitações',
-      description: 'Acompanhe editais de licitações e pregões',
-      icon: '📋',
-      color: 'from-green-500 to-emerald-600'
-    },
-    {
-      id: 'leis',
-      title: 'Leis / Legislação',
-      description: 'Identifique novas leis e alterações legislativas',
-      icon: '⚖️',
-      color: 'from-purple-500 to-violet-600'
-    }
   ];
 
   // Estrutura de diários oficiais (mesma da aba Diários Oficiais)
@@ -506,19 +572,177 @@ export default function RadarIA() {
     try {
       setIsLoading(true);
       const configurations = getMockConfigurations(selectedContext!);
-      const result = await createMonitoring(selectedContext!, configurations);
       
-      if (result.success) {
-        // Recarregar lista de monitoramentos
-        const updatedMonitorings = await fetchMonitorings();
-        setMonitorings(updateNewCounts(updatedMonitorings));
+      if (editingMonitoring) {
+        // Atualizar monitoramento existente
+        setMonitorings(prev => prev.map(m => 
+          m.id === editingMonitoring.id 
+            ? { 
+                ...m, 
+                selectedDiarios: selectedDiarios,
+                valorRange: valorRange,
+                valorRangeType: valorRangeType,
+                selectedPredefinedRange: selectedPredefinedRange,
+                selectedCategoria: selectedCategoria || undefined,
+                configurations: configurations
+              }
+            : m
+        ));
         
         setShowForm(false);
         setSelectedContext(null);
         setSelectedDiarios([]);
         setValorRange({ min: 0, max: 100000 });
         setValorRangeType('predefined');
-        setSelectedPredefinedRange('10k-50k');
+        setSelectedPredefinedRange('qualquer');
+        setSelectedCategoria('');
+        setEditingMonitoring(null);
+        
+        showToast('Monitoramento atualizado com sucesso!', 'success');
+      } else {
+        // Criar novo monitoramento
+        const newMonitoring: Monitoring = {
+          id: Date.now().toString(),
+          contextId: selectedContext!,
+          contextName: contexts.find(c => c.id === selectedContext)?.title || 'Monitoramento',
+          contextIcon: contexts.find(c => c.id === selectedContext)?.icon || '🎯',
+          contextColor: contexts.find(c => c.id === selectedContext)?.color || 'blue',
+          createdAt: new Date().toISOString(),
+          status: 'active',
+          totalFound: 5,
+          lastFound: new Date().toISOString(),
+          configurations: configurations,
+          history: [
+            {
+              id: 'ctx-1',
+              contextType: 'concursos',
+              title: 'Edital de Concurso Público - Secretaria de Educação',
+              date: '2024-01-15',
+              source: 'DOU',
+              url: '#',
+              isRead: false,
+              details: {
+                instituicao: 'Secretaria de Educação',
+                cargos: ['Professor', 'Coordenador'],
+                vagas: 50,
+                salario: 'R$ 3.500,00',
+                inscricaoInicio: '2024-01-20',
+                inscricaoFim: '2024-02-20',
+                taxaInscricao: 'R$ 80,00',
+                dataProva: '2024-03-15',
+                linkEdital: '#',
+                resumo: 'Concurso para provimento de vagas na área de educação'
+              }
+            },
+            {
+              id: 'ctx-2',
+              contextType: 'concursos',
+              title: 'Concurso Público - Tribunal de Justiça',
+              date: '2024-01-14',
+              source: 'DOU',
+              url: '#',
+              isRead: true,
+              details: {
+                instituicao: 'Tribunal de Justiça',
+                cargos: ['Analista Judiciário'],
+                vagas: 20,
+                salario: 'R$ 5.000,00',
+                inscricaoInicio: '2024-01-18',
+                inscricaoFim: '2024-02-18',
+                taxaInscricao: 'R$ 120,00',
+                dataProva: '2024-03-10',
+                linkEdital: '#',
+                resumo: 'Concurso para analista judiciário'
+              }
+            },
+            {
+              id: 'ctx-3',
+              contextType: 'concursos',
+              title: 'Concurso Público - Prefeitura Municipal',
+              date: '2024-01-12',
+              source: 'DOM',
+              url: '#',
+              isRead: false,
+              details: {
+                instituicao: 'Prefeitura Municipal',
+                cargos: ['Agente Administrativo', 'Assistente Social'],
+                vagas: 30,
+                salario: 'R$ 2.800,00',
+                inscricaoInicio: '2024-01-15',
+                inscricaoFim: '2024-02-15',
+                taxaInscricao: 'R$ 60,00',
+                dataProva: '2024-03-05',
+                linkEdital: '#',
+                resumo: 'Concurso para cargos administrativos municipais'
+              }
+            },
+            {
+              id: 'ctx-4',
+              contextType: 'concursos',
+              title: 'Concurso Público - Polícia Civil',
+              date: '2024-01-10',
+              source: 'DOU',
+              url: '#',
+              isRead: true,
+              details: {
+                instituicao: 'Polícia Civil',
+                cargos: ['Delegado', 'Investigador'],
+                vagas: 15,
+                salario: 'R$ 8.000,00',
+                inscricaoInicio: '2024-01-12',
+                inscricaoFim: '2024-02-12',
+                taxaInscricao: 'R$ 150,00',
+                dataProva: '2024-03-20',
+                linkEdital: '#',
+                resumo: 'Concurso para cargos na polícia civil'
+              }
+            },
+            {
+              id: 'ctx-5',
+              contextType: 'concursos',
+              title: 'Concurso Público - Ministério Público',
+              date: '2024-01-08',
+              source: 'DOU',
+              url: '#',
+              isRead: false,
+              details: {
+                instituicao: 'Ministério Público',
+                cargos: ['Promotor de Justiça'],
+                vagas: 8,
+                salario: 'R$ 12.000,00',
+                inscricaoInicio: '2024-01-10',
+                inscricaoFim: '2024-02-10',
+                taxaInscricao: 'R$ 200,00',
+                dataProva: '2024-03-25',
+                linkEdital: '#',
+                resumo: 'Concurso para promotor de justiça'
+              }
+            }
+          ],
+          selectedDiarios: selectedDiarios,
+          valorRange: valorRange,
+          valorRangeType: valorRangeType,
+          selectedPredefinedRange: selectedPredefinedRange,
+          newCount: 0,
+          lastSeenCount: 0,
+          // Propriedades adicionais para compatibilidade
+          title: contexts.find(c => c.id === selectedContext)?.title || 'Monitoramento',
+          description: `Monitoramento de ${contexts.find(c => c.id === selectedContext)?.title || 'contexto'}`,
+          isActive: true,
+          contextType: selectedContext as 'concursos' | 'licitacoes' | 'leis',
+          selectedCategoria: selectedCategoria || undefined
+        };
+        
+        // Adicionar ao estado existente
+        setMonitorings(prev => [...prev, newMonitoring]);
+        
+        setShowForm(false);
+        setSelectedContext(null);
+        setSelectedDiarios([]);
+        setValorRange({ min: 0, max: 100000 });
+        setValorRangeType('predefined');
+        setSelectedPredefinedRange('qualquer');
+        setSelectedCategoria('');
         
         showToast('Monitoramento criado com sucesso!', 'success');
       }
@@ -533,7 +757,7 @@ export default function RadarIA() {
   const toggleMonitoringStatus = (monitoringId: string) => {
     setMonitorings(prev => prev.map(m => 
       m.id === monitoringId 
-        ? { ...m, status: m.status === 'active' ? 'inactive' : 'active' }
+        ? { ...m, isActive: !m.isActive }
         : m
     ));
   };
@@ -592,7 +816,7 @@ export default function RadarIA() {
     return [];
   };
 
-  const handleViewDetails = (monitoring: any) => {
+  const handleViewDetails = (monitoring: Monitoring) => {
     setSelectedMonitoring(monitoring);
     setDrawerAnimation('slide-in');
     setShowDrawer(true);
@@ -608,14 +832,30 @@ export default function RadarIA() {
   };
 
 
-  const handleEditMonitoring = (monitoring: any) => {
+  const handleEditMonitoring = (monitoring: Monitoring) => {
     setSelectedContext(monitoring.contextId);
+    setSelectedDiarios(monitoring.selectedDiarios || []);
+    setValorRange(monitoring.valorRange || { min: 0, max: 100000 });
+    setValorRangeType(monitoring.valorRangeType || 'predefined');
+    setSelectedPredefinedRange(monitoring.selectedPredefinedRange || 'qualquer');
+    setSelectedCategoria(monitoring.selectedCategoria || '');
+    setEditingMonitoring(monitoring);
     setShowForm(true);
     closeDrawer();
   };
 
   const handleDeleteMonitoring = (monitoringId: string) => {
-    setMonitorings(prev => prev.filter(m => m.id !== monitoringId));
+    setDeletingMonitoringId(monitoringId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletingMonitoringId) {
+      setMonitorings(prev => prev.filter(m => m.id !== deletingMonitoringId));
+      showToast('Monitoramento excluído com sucesso!', 'success');
+      setShowDeleteModal(false);
+      setDeletingMonitoringId(null);
+    }
   };
 
   // Funções para expansão de itens
@@ -857,14 +1097,8 @@ export default function RadarIA() {
 
           {/* Contextos Disponíveis */}
           <div className="mb-12 fade-in-delay-3">
-            <div className="mb-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">
-                  Escolha o contexto para monitorar
-                </h2>
-              </div>
-            </div>
-            <div id="context-cards-container" className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div id="context-cards-container" className="flex justify-center">
+              <div className="grid grid-cols-1 gap-6 max-w-sm">
               {contexts.map((context, index) => (
                 <div
                   key={context.id}
@@ -887,6 +1121,7 @@ export default function RadarIA() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           </div>
 
@@ -1069,8 +1304,8 @@ export default function RadarIA() {
                 </div>
               )}
 
-              {/* Formulário para Licitações */}
-              {selectedContext === 'licitacoes' && (
+              {/* Formulário para Licitações - REMOVIDO */}
+              {false && selectedContext === 'licitacoes' && (
                 <div className="space-y-6">
                   {/* Painel de Seleções Ativas para Licitações */}
                   <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-400/30 rounded-lg p-4">
@@ -1234,8 +1469,8 @@ export default function RadarIA() {
                 </div>
               )}
 
-              {/* Formulário para Leis/Legislação */}
-              {selectedContext === 'leis' && (
+              {/* Formulário para Leis/Legislação - REMOVIDO */}
+              {false && selectedContext === 'leis' && (
                 <div className="space-y-6">
                   {/* Painel de Seleções Ativas para Leis */}
                   <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-400/30 rounded-lg p-4">
@@ -1313,7 +1548,10 @@ export default function RadarIA() {
                   disabled={isLoading}
                   className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Criando monitoramento...' : 'Criar monitoramento de contexto'}
+                  {isLoading 
+                    ? (editingMonitoring ? 'Atualizando monitoramento...' : 'Criando monitoramento...') 
+                    : (editingMonitoring ? 'Atualizar monitoramento' : 'Criar monitoramento de contexto')
+                  }
                 </button>
               </div>
             </div>
@@ -1333,13 +1571,7 @@ export default function RadarIA() {
                     </svg>
                   </div>
                   <h3 className="text-lg font-medium text-white mb-2">Nenhum monitoramento ativo</h3>
-                  <p className="text-gray-400 mb-6">Crie seu primeiro monitoramento para começar a receber alertas</p>
-                  <button
-                    onClick={handleCreateMonitoringClick}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                  >
-                    Criar Monitoramento
-                  </button>
+                  <p className="text-gray-400">Crie seu primeiro monitoramento para começar a receber alertas</p>
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -1378,8 +1610,8 @@ export default function RadarIA() {
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           <button
-                            onClick={() => handleViewDetails(monitoring.id)}
-                            className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                            onClick={() => handleViewDetails(monitoring)}
+                            className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors cursor-pointer"
                             title="Ver detalhes"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1388,8 +1620,8 @@ export default function RadarIA() {
                             </svg>
                           </button>
                           <button
-                            onClick={() => handleEditMonitoring(monitoring.id)}
-                            className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                            onClick={() => handleEditMonitoring(monitoring)}
+                            className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors cursor-pointer"
                             title="Editar"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1397,8 +1629,8 @@ export default function RadarIA() {
                             </svg>
                           </button>
                           <button
-                            onClick={() => setMonitorings(prev => prev.filter(m => m.id !== monitoring.id))}
-                            className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                            onClick={() => handleDeleteMonitoring(monitoring.id)}
+                            className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                             title="Excluir"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1407,16 +1639,22 @@ export default function RadarIA() {
                           </button>
                           <button
                             onClick={() => toggleMonitoringStatus(monitoring.id)}
-                            className={`p-2 rounded-lg transition-colors ${
+                            className={`p-2 rounded-lg transition-colors cursor-pointer ${
                               monitoring.isActive
-                                ? 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
+                                ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10'
                                 : 'text-gray-400 hover:text-green-400 hover:bg-green-500/10'
                             }`}
-                            title={monitoring.isActive ? 'Desativar' : 'Ativar'}
+                            title={monitoring.isActive ? 'Pausar' : 'Ativar'}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            {monitoring.isActive ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -1443,9 +1681,9 @@ export default function RadarIA() {
               {/* Header do Drawer */}
               <div className="flex items-center justify-between p-6 border-b border-gray-700">
                 <div className="flex items-center">
-                  <div className="text-2xl mr-3">{selectedMonitoring.contextIcon}</div>
+                  <div className="text-2xl mr-3">{selectedMonitoring?.contextIcon || '🎯'}</div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">{selectedMonitoring.contextName}</h2>
+                    <h2 className="text-xl font-bold text-white">{selectedMonitoring?.contextName || 'Monitoramento'}</h2>
                     <p className="text-sm text-gray-400">Detalhes do Monitoramento</p>
                   </div>
                 </div>
@@ -1466,12 +1704,12 @@ export default function RadarIA() {
                   <h3 className="text-lg font-semibold text-white mb-4">Estatísticas</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white/5 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-blue-400">{selectedMonitoring.totalFound}</div>
+                      <div className="text-2xl font-bold text-blue-400">{selectedMonitoring?.totalFound || 0}</div>
                       <div className="text-sm text-gray-300">Total Encontrado</div>
                     </div>
                     <div className="bg-white/5 rounded-lg p-4">
                       <div className="text-2xl font-bold text-green-400">
-                        {new Date(selectedMonitoring.lastFound).toLocaleDateString('pt-BR')}
+                        {selectedMonitoring?.lastFound ? new Date(selectedMonitoring.lastFound).toLocaleDateString('pt-BR') : 'N/A'}
                       </div>
                       <div className="text-sm text-gray-300">Última Descoberta</div>
                     </div>
@@ -1482,31 +1720,31 @@ export default function RadarIA() {
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-white mb-4">Configurações</h3>
                   <div className="bg-white/5 rounded-lg p-4">
-                    {selectedMonitoring.contextId === 'concursos' && (
+                    {selectedMonitoring?.contextId === 'concursos' && (
                       <div className="space-y-2">
-                        <div><span className="text-gray-300">Diários:</span> <span className="text-white">{selectedMonitoring.configurations.diarios.join(', ')}</span></div>
-                        <div><span className="text-gray-300">Tipo:</span> <span className="text-white">{selectedMonitoring.configurations.tipo}</span></div>
+                        <div><span className="text-gray-300">Diários:</span> <span className="text-white">{selectedMonitoring?.configurations?.diarios?.join(', ') || 'N/A'}</span></div>
+                        <div><span className="text-gray-300">Tipo:</span> <span className="text-white">{selectedMonitoring?.configurations?.tipo || 'N/A'}</span></div>
                       </div>
                     )}
-                    {selectedMonitoring.contextId === 'licitacoes' && (
+                    {selectedMonitoring?.contextId === 'licitacoes' && (
                       <div className="space-y-2">
-                        <div><span className="text-gray-300">Fonte:</span> <span className="text-white">{selectedMonitoring.configurations.fonte}</span></div>
-                        <div><span className="text-gray-300">Categoria:</span> <span className="text-white">{selectedMonitoring.configurations.categoria}</span></div>
+                        <div><span className="text-gray-300">Fonte:</span> <span className="text-white">{selectedMonitoring?.configurations?.fonte || 'N/A'}</span></div>
+                        <div><span className="text-gray-300">Categoria:</span> <span className="text-white">{selectedMonitoring?.configurations?.categoria || 'N/A'}</span></div>
                         <div>
                           <span className="text-gray-300">Faixa de Valor:</span> 
                           <span className="text-white ml-2">
-                            {selectedMonitoring.configurations.valorRangeType === 'predefined' 
-                              ? predefinedRanges.find(r => r.id === selectedMonitoring.configurations.selectedPredefinedRange)?.label || 'Personalizado'
-                              : `${formatCurrency(selectedMonitoring.configurations.valorMin)} - ${formatCurrency(selectedMonitoring.configurations.valorMax)}`
+                            {selectedMonitoring?.configurations?.valorRangeType === 'predefined' 
+                              ? predefinedRanges.find(r => r.id === selectedMonitoring?.configurations?.selectedPredefinedRange)?.label || 'Personalizado'
+                              : `${formatCurrency(selectedMonitoring?.configurations?.valorMin || 0)} - ${formatCurrency(selectedMonitoring?.configurations?.valorMax || 0)}`
                             }
                           </span>
                         </div>
                       </div>
                     )}
-                    {selectedMonitoring.contextId === 'leis' && (
+                    {selectedMonitoring?.contextId === 'leis' && (
                       <div className="space-y-2">
-                        <div><span className="text-gray-300">Fonte:</span> <span className="text-white">{selectedMonitoring.configurations.fonte}</span></div>
-                        <div><span className="text-gray-300">Tipos de Norma:</span> <span className="text-white">{selectedMonitoring.configurations.tiposNorma.join(', ')}</span></div>
+                        <div><span className="text-gray-300">Fonte:</span> <span className="text-white">{selectedMonitoring?.configurations?.fonte || 'N/A'}</span></div>
+                        <div><span className="text-gray-300">Tipos de Norma:</span> <span className="text-white">{selectedMonitoring?.configurations?.tiposNorma?.join(', ') || 'N/A'}</span></div>
                       </div>
                     )}
                   </div>
@@ -1537,7 +1775,7 @@ export default function RadarIA() {
                   </div>
 
                   {/* Barra de ações - aparece sempre que há itens no histórico, mas não quando filtros estão abertos */}
-                  {selectedMonitoring.history.length > 0 && !showFilters && (
+                  {selectedMonitoring?.history?.length > 0 && !showFilters && (
                     <div className="bg-white/5 rounded-lg p-4 mb-4 border border-white/10">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -1549,7 +1787,7 @@ export default function RadarIA() {
                           {/* Botão "Selecionar todos" - sempre visível quando há itens */}
                           <button
                             onClick={() => {
-                              const allItemIds = selectedMonitoring.history.map(item => item.id);
+                              const allItemIds = selectedMonitoring?.history?.map(item => item.id) || [];
                               const newSelection: {[key: string]: boolean} = {};
                               allItemIds.forEach(id => {
                                 newSelection[id] = true;
@@ -1579,7 +1817,7 @@ export default function RadarIA() {
                               <button
                                 onClick={() => {
                                   const selectedIds = Object.keys(selectedItems).filter(id => selectedItems[id]);
-                                  selectedIds.forEach(id => markItemAsRead(id));
+                                  selectedIds.forEach(id => markItemAsRead(selectedMonitoring?.id || '', id));
                                   clearSelection();
                                 }}
                                 className="flex items-center gap-2 px-3 py-2 bg-green-600/30 text-green-200 hover:bg-green-600/40 rounded-lg text-sm transition-colors border border-green-500/30"
@@ -1590,7 +1828,7 @@ export default function RadarIA() {
                                 Marcar como lido
                               </button>
                               <button
-                                onClick={() => deleteSelectedItems(selectedMonitoring.id)}
+                                onClick={() => deleteSelectedItems(selectedMonitoring?.id || '')}
                                 className="flex items-center gap-2 px-3 py-2 bg-red-600/30 text-red-200 hover:bg-red-600/40 rounded-lg text-sm transition-colors border border-red-500/30"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1703,18 +1941,15 @@ export default function RadarIA() {
 
                   {/* Contador de resultados */}
                   <div className="mb-4 text-sm text-gray-400">
-                    Mostrando {getFilteredHistory(selectedMonitoring.history).length} de {selectedMonitoring.history.length} itens
+                    Mostrando {getFilteredHistory(selectedMonitoring?.history || []).length} de {selectedMonitoring?.history?.length || 0} itens
                     {(filterStatus !== 'all' || filterDateRange !== 'all' || searchTerm) && (
                       <span className="ml-2 text-blue-400">(filtrados)</span>
                     )}
                   </div>
 
                   <div className="space-y-3">
-                    {getFilteredHistory(selectedMonitoring.history).length === 0 ? (
+                    {getFilteredHistory(selectedMonitoring?.history || []).length === 0 ? (
                       <div className="text-center py-8 text-gray-400">
-                        <svg className="w-12 h-12 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.009-5.824-2.709M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
                         <p className="text-lg font-medium mb-2">Nenhum item encontrado</p>
                         <p className="text-sm">
                           {searchTerm || filterStatus !== 'all' || filterDateRange !== 'all' 
@@ -1724,7 +1959,7 @@ export default function RadarIA() {
                         </p>
                       </div>
                     ) : (
-                      getFilteredHistory(selectedMonitoring.history).map((item: MockSummary, index: number) => (
+                      getFilteredHistory(selectedMonitoring?.history || []).map((item: MockSummary, index: number) => (
                       <div key={item.id} className="bg-white/5 rounded-lg transition-all duration-300 hover:bg-white/10">
                         {/* Header do item */}
                         <div className="p-4 flex items-center gap-3">
@@ -1780,36 +2015,36 @@ export default function RadarIA() {
                             <div className="pt-4">
                               {/* Grid de metadados responsivo */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                {item.contextType === 'concursos' && (
+                                {item.contextType === 'concursos' && 'instituicao' in item.details && (
                                   <>
-                                    <div><span className="text-gray-400 text-sm">Instituição:</span> <span className="text-white text-sm">{item.details.instituicao}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Cargos:</span> <span className="text-white text-sm">{item.details.cargos.join(', ')}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Vagas:</span> <span className="text-white text-sm">{item.details.vagas}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Salário:</span> <span className="text-white text-sm">{item.details.salario}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Inscrições:</span> <span className="text-white text-sm">{item.details.inscricaoInicio} a {item.details.inscricaoFim}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Taxa:</span> <span className="text-white text-sm">{item.details.taxaInscricao}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Data da Prova:</span> <span className="text-white text-sm">{item.details.dataProva}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Instituição:</span> <span className="text-white text-sm">{(item.details as ConcursoDetails).instituicao}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Cargos:</span> <span className="text-white text-sm">{(item.details as ConcursoDetails).cargos.join(', ')}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Vagas:</span> <span className="text-white text-sm">{(item.details as ConcursoDetails).vagas}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Salário:</span> <span className="text-white text-sm">{(item.details as ConcursoDetails).salario}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Inscrições:</span> <span className="text-white text-sm">{(item.details as ConcursoDetails).inscricaoInicio} a {(item.details as ConcursoDetails).inscricaoFim}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Taxa:</span> <span className="text-white text-sm">{(item.details as ConcursoDetails).taxaInscricao}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Data da Prova:</span> <span className="text-white text-sm">{(item.details as ConcursoDetails).dataProva}</span></div>
                                   </>
                                 )}
-                                {item.contextType === 'licitacoes' && (
+                                {item.contextType === 'licitacoes' && 'orgao' in item.details && (
                                   <>
-                                    <div><span className="text-gray-400 text-sm">Órgão:</span> <span className="text-white text-sm">{item.details.orgao}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Modalidade:</span> <span className="text-white text-sm">{item.details.modalidade}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Objeto:</span> <span className="text-white text-sm">{item.details.objeto}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Categoria:</span> <span className="text-white text-sm">{item.details.categoria}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Valor Estimado:</span> <span className="text-white text-sm">{item.details.valorEstimado}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Entrega Propostas:</span> <span className="text-white text-sm">{item.details.entregaPropostasAte}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Sessão Pública:</span> <span className="text-white text-sm">{item.details.sessaoPublicaEm}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Órgão:</span> <span className="text-white text-sm">{(item.details as LicitacaoDetails).orgao}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Modalidade:</span> <span className="text-white text-sm">{(item.details as LicitacaoDetails).modalidade}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Objeto:</span> <span className="text-white text-sm">{(item.details as LicitacaoDetails).objeto}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Categoria:</span> <span className="text-white text-sm">{(item.details as LicitacaoDetails).categoria}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Valor Estimado:</span> <span className="text-white text-sm">{(item.details as LicitacaoDetails).valorEstimado}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Entrega Propostas:</span> <span className="text-white text-sm">{(item.details as LicitacaoDetails).entregaPropostasAte}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Sessão Pública:</span> <span className="text-white text-sm">{(item.details as LicitacaoDetails).sessaoPublicaEm}</span></div>
                                   </>
                                 )}
-                                {item.contextType === 'leis' && (
+                                {item.contextType === 'leis' && 'ente' in item.details && (
                                   <>
-                                    <div><span className="text-gray-400 text-sm">Ente:</span> <span className="text-white text-sm">{item.details.ente}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Tipo:</span> <span className="text-white text-sm">{item.details.tipoNorma}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Número:</span> <span className="text-white text-sm">{item.details.numero}/{item.details.ano}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Ementa:</span> <span className="text-white text-sm">{item.details.ementa}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Assuntos:</span> <span className="text-white text-sm">{item.details.assuntos.join(', ')}</span></div>
-                                    <div><span className="text-gray-400 text-sm">Publicação:</span> <span className="text-white text-sm">{item.details.dataPublicacao}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Ente:</span> <span className="text-white text-sm">{(item.details as LeiDetails).ente}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Tipo:</span> <span className="text-white text-sm">{(item.details as LeiDetails).tipoNorma}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Número:</span> <span className="text-white text-sm">{(item.details as LeiDetails).numero}/{(item.details as LeiDetails).ano}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Ementa:</span> <span className="text-white text-sm">{(item.details as LeiDetails).ementa}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Assuntos:</span> <span className="text-white text-sm">{(item.details as LeiDetails).assuntos.join(', ')}</span></div>
+                                    <div><span className="text-gray-400 text-sm">Publicação:</span> <span className="text-white text-sm">{(item.details as LeiDetails).dataPublicacao}</span></div>
                                   </>
                                 )}
                               </div>
@@ -1850,7 +2085,7 @@ export default function RadarIA() {
                           </button>
                                 {!item.isRead && (
                                   <button
-                                    onClick={() => markItemAsRead(selectedMonitoring.id, item.id)}
+                                    onClick={() => markItemAsRead(selectedMonitoring?.id || '', item.id)}
                                     className="flex items-center gap-2 px-3 py-2 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 rounded-lg text-sm transition-colors"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1955,31 +2190,6 @@ export default function RadarIA() {
             if (selectedContext === 'concursos') {
               isValid = selectedDiarios.length > 0;
               console.log('Concursos validation:', { selectedDiarios: selectedDiarios.length, isValid });
-            } else if (selectedContext === 'licitacoes') {
-              const hasDiarios = selectedDiarios.length > 0;
-              const hasCategoria = selectedCategoria && selectedCategoria !== '';
-              const hasFonte = selectedFonte && selectedFonte !== '';
-              isValid = hasDiarios && hasCategoria && hasFonte;
-              
-              console.log('Licitações validation:', { 
-                hasDiarios, 
-                hasCategoria, 
-                hasFonte,
-                selectedCategoria: `"${selectedCategoria}"`,
-                selectedFonte: `"${selectedFonte}"`,
-                isValid 
-              });
-            } else if (selectedContext === 'leis') {
-              const hasDiarios = selectedDiarios.length > 0;
-              const hasTiposNorma = selectedTiposNorma.length > 0;
-              isValid = hasDiarios && hasTiposNorma;
-              
-              console.log('Leis validation:', { 
-                hasDiarios, 
-                hasTiposNorma,
-                selectedTiposNorma,
-                isValid 
-              });
             }
             
             return isValid;
@@ -1992,6 +2202,47 @@ export default function RadarIA() {
         isOpen={isTestModalOpen}
         onClose={() => setIsTestModalOpen(false)}
       />
+
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-12 h-12 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-white mb-2">
+                Excluir Monitoramento
+              </h3>
+              <p className="text-sm text-gray-300 mb-6">
+                Tem certeza que deseja excluir este monitoramento? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletingMonitoringId(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
     </div>
   );

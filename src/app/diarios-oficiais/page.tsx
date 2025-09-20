@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import RegisterModal from '@/components/RegisterModal';
 import TransparentHeader from '@/components/TransparentHeader';
 import TestModal from '@/components/TestModal';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import DatePicker from '@/components/DatePicker';
 import { 
   MagnifyingGlassIcon, 
   BellIcon, 
@@ -16,17 +15,26 @@ import {
   ArrowDownTrayIcon,
   LinkIcon,
   TrashIcon,
-  CalendarIcon
+  CalendarIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 
 export default function DiariosOficiais() {
   const [activeTab, setActiveTab] = useState('buscar');
+  
+  // Simular usuário logado para testes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('isLoggedIn')) {
+      localStorage.setItem('isLoggedIn', 'true');
+    }
+  }, []);
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
   const [selectedDiarios, setSelectedDiarios] = useState<string[]>([]);
   const [searchPeriod, setSearchPeriod] = useState('7d');
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState({ start: undefined as Date | undefined, end: undefined as Date | undefined });
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{
     id: number;
     title: string;
@@ -35,6 +43,8 @@ export default function DiariosOficiais() {
     excerpt: string;
     url: string;
   }>>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingMonitoringId, setDeletingMonitoringId] = useState<number | null>(null);
   const [diarioSearchTerm, setDiarioSearchTerm] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -56,7 +66,7 @@ export default function DiariosOficiais() {
     {
       id: 1,
       terms: ['concurso público', 'edital'],
-      diarios: ['DOU', 'DOSP'],
+      diarios: ['dou', 'dosp'],
       isActive: true,
       createdAt: '2024-01-10',
       occurrences: 15
@@ -64,7 +74,7 @@ export default function DiariosOficiais() {
     {
       id: 2,
       terms: ['licitação', 'pregão'],
-      diarios: ['DOU', 'DOM'],
+      diarios: ['dou', 'dom'],
       isActive: true,
       createdAt: '2024-01-08',
       occurrences: 8
@@ -72,12 +82,55 @@ export default function DiariosOficiais() {
     {
       id: 3,
       terms: ['nomeação', 'decreto'],
-      diarios: ['DOU'],
+      diarios: ['dou'],
       isActive: false,
       createdAt: '2024-01-05',
       occurrences: 3
+    },
+    {
+      id: 4,
+      terms: ['monitoramento de contexto'],
+      diarios: ['dou'],
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      occurrences: 8
+    },
+    {
+      id: 5,
+      terms: ['concurso público', 'prova', 'inscrição'],
+      diarios: ['dou', 'dosp', 'dom'],
+      isActive: true,
+      createdAt: '2024-01-12',
+      occurrences: 22
+    },
+    {
+      id: 6,
+      terms: ['edital de concurso', 'cargo público'],
+      diarios: ['dou', 'dosp'],
+      isActive: true,
+      createdAt: '2024-01-14',
+      occurrences: 18
+    },
+    {
+      id: 8,
+      terms: ['concurso', 'seleção pública', 'vagas'],
+      diarios: ['dou', 'dom'],
+      isActive: true,
+      createdAt: '2024-01-16',
+      occurrences: 12
+    },
+    {
+      id: 7,
+      terms: ['concurso público', 'tribunal', 'justiça'],
+      diarios: ['dou'],
+      isActive: false,
+      createdAt: '2024-01-18',
+      occurrences: 7
     }
   ]);
+
+
+  const [monitoredTerms, setMonitoredTerms] = useState<Set<string>>(new Set());
   const [selectedDiario, setSelectedDiario] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [navegarExpandedCategories, setNavegarExpandedCategories] = useState<{[key: string]: boolean}>({});
@@ -263,6 +316,8 @@ export default function DiariosOficiais() {
       setSearchInput('');
       setShowDiarioDropdown(false);
       setShowDateFilters(false);
+      setHasSearched(false);
+      setSearchResults([]);
     } else {
       setSearchInput(newTerms.join(', '));
     }
@@ -270,14 +325,24 @@ export default function DiariosOficiais() {
 
   const handleDiarioSelect = (diarioId: string) => {
     if (selectedDiarios.includes(diarioId)) {
-      setSelectedDiarios(selectedDiarios.filter(id => id !== diarioId));
+      const newSelectedDiarios = selectedDiarios.filter(id => id !== diarioId);
+      setSelectedDiarios(newSelectedDiarios);
+      if (newSelectedDiarios.length === 0) {
+        setHasSearched(false);
+        setSearchResults([]);
+      }
     } else {
       setSelectedDiarios([...selectedDiarios, diarioId]);
     }
   };
 
   const handleDiarioRemove = (diarioId: string) => {
-    setSelectedDiarios(selectedDiarios.filter(id => id !== diarioId));
+    const newSelectedDiarios = selectedDiarios.filter(id => id !== diarioId);
+    setSelectedDiarios(newSelectedDiarios);
+    if (newSelectedDiarios.length === 0) {
+      setHasSearched(false);
+      setSearchResults([]);
+    }
   };
 
   const handlePeriodSelect = (period: string) => {
@@ -437,6 +502,7 @@ export default function DiariosOficiais() {
     }
     
     setIsSearching(true);
+    setHasSearched(true);
     
     // Simular busca com dados mockados
     setTimeout(() => {
@@ -511,21 +577,29 @@ export default function DiariosOficiais() {
     }, 2000);
   };
 
-  const handleSaveAsMonitor = async () => {
+  const handleSaveAsMonitor = async (term: string) => {
     try {
+      // Verificar se o termo já foi monitorado
+      if (monitoredTerms.has(term)) {
+        showToastMessage('Este termo já está sendo monitorado!');
+        return;
+      }
+
       // TODO: Implementar chamada para API real
-      console.log('Salvando monitoramento:', { terms: searchTerms, diarios: selectedDiarios });
+      console.log('Salvando monitoramento:', { term, diarios: selectedDiarios });
       
       const newMonitoramento = {
         id: Date.now(),
-        terms: searchTerms,
+        terms: [term],
         diarios: selectedDiarios,
         isActive: true,
         createdAt: new Date().toISOString(),
         occurrences: 0 // Será atualizado pela API
       };
+      
       setMonitoramentos([...monitoramentos, newMonitoramento]);
-      showToastMessage('Monitoramento criado com sucesso!');
+      setMonitoredTerms(prev => new Set([...prev, term]));
+      showToastMessage('Monitoramento do termo cadastrado com sucesso');
     } catch (error) {
       console.error('Erro ao salvar monitoramento:', error);
       showToastMessage('Erro ao salvar monitoramento. Tente novamente.');
@@ -649,31 +723,54 @@ export default function DiariosOficiais() {
       return;
     }
     
-    if (!monitorTerm || !monitorTerm.trim()) {
+    // Validação mais robusta
+    const term = monitorTerm?.trim();
+    if (!term || term.length === 0) {
       setValidationError('Adicione um termo para monitorar');
       return;
     }
     
-    if (monitorDiarios.length === 0) {
+    if (!monitorDiarios || monitorDiarios.length === 0) {
       setValidationError('Selecione pelo menos 1 diário oficial');
       return;
     }
     
+    // Criar novo monitoramento
     const newMonitoramento = {
       id: Date.now(),
-      terms: [monitorTerm!.trim()],
+      terms: [term],
       diarios: [...monitorDiarios],
       isActive: true,
       createdAt: new Date().toISOString(),
       occurrences: 0
     };
     
-    setMonitoramentos([...monitoramentos, newMonitoramento]);
+    // Atualizar estado usando função callback para garantir que a atualização seja aplicada
+    setMonitoramentos(prev => [...prev, newMonitoramento]);
+    
+    // Limpar formulário
     setMonitorTerm('');
     setMonitorDiarios([]);
     setMonitorTermInput('');
     setShowCreateForm(false);
+    setValidationError('');
+    
     showToastMessage('Monitoramento criado com sucesso!');
+  };
+
+  // Função de teste para criar monitoramento de contexto
+  const handleCreateContextMonitor = () => {
+    const newContextMonitor = {
+      id: Date.now(),
+      terms: ['monitoramento de contexto'],
+      diarios: ['dou'],
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      occurrences: Math.floor(Math.random() * 20) + 1
+    };
+    
+    setMonitoramentos(prev => [...prev, newContextMonitor]);
+    showToastMessage('Monitoramento de contexto criado com sucesso!');
   };
 
   const handleToggleMonitoramento = (id: number) => {
@@ -683,9 +780,16 @@ export default function DiariosOficiais() {
   };
 
   const handleDeleteMonitoramento = (id: number) => {
-    if (confirm('Tem certeza que deseja excluir este monitoramento?')) {
-      setMonitoramentos(monitoramentos.filter(m => m.id !== id));
+    setDeletingMonitoringId(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletingMonitoringId) {
+      setMonitoramentos(monitoramentos.filter(m => m.id !== deletingMonitoringId));
       showToastMessage('Monitoramento excluído com sucesso!');
+      setShowDeleteModal(false);
+      setDeletingMonitoringId(null);
     }
   };
 
@@ -1034,31 +1138,26 @@ export default function DiariosOficiais() {
                             <div className="flex flex-col sm:flex-row gap-6 items-end">
                               <div className="flex-1">
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data inicial</label>
-                                <div className="input-with-icon">
-                                  <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                                  <input
-                                    type="date"
-                                    value={customDateRange.start ? customDateRange.start.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value ? new Date(e.target.value) : undefined})}
-                                    max={new Date().toISOString().split('T')[0]}
-                                    className="input-standard text-base w-full"
-                                  />
-                                </div>
+                                <DatePicker
+                                  selectedDate={customDateRange.start}
+                                  onChange={(date) => setCustomDateRange({...customDateRange, start: date || undefined})}
+                                  maxDate={new Date()}
+                                  placeholder="dd/mm/aaaa"
+                                  className="w-full"
+                                  forcePosition="above"
+                                />
                               </div>
                               
                               <div className="flex-1">
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data final</label>
-                                <div className="input-with-icon">
-                                  <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                                  <input
-                                    type="date"
-                                    value={customDateRange.end ? customDateRange.end.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value ? new Date(e.target.value) : undefined})}
-                                    min={customDateRange.start ? customDateRange.start.toISOString().split('T')[0] : ''}
-                                    max={new Date().toISOString().split('T')[0]}
-                                    className="input-standard text-base w-full"
-                                  />
-                                </div>
+                                <DatePicker
+                                  selectedDate={customDateRange.end}
+                                  onChange={(date) => setCustomDateRange({...customDateRange, end: date || undefined})}
+                                  maxDate={new Date()}
+                                  placeholder="dd/mm/aaaa"
+                                  className="w-full"
+                                  forcePosition="above"
+                                />
                               </div>
                             </div>
                             {/* Exibição do período selecionado */}
@@ -1080,7 +1179,7 @@ export default function DiariosOficiais() {
                             <button
                               onClick={handleSearch}
                               disabled={isSearching || searchTerms.length === 0 || selectedDiarios.length === 0}
-                              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 text-lg shadow-lg hover:shadow-xl disabled:shadow-none"
+                              className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 text-base shadow-lg hover:shadow-xl disabled:shadow-none"
                             >
                               {isSearching ? (
                                 <>
@@ -1098,94 +1197,9 @@ export default function DiariosOficiais() {
                   )}
                 </div>
               )}
-
-              {/* Resultados em cards organizados */}
-              {searchResults.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-4 sm:mb-6">
-                    <h3 className="text-base font-semibold text-white sm:text-lg">
-                      Resultados ({searchResults.length})
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setSearchInput('');
-                        setSearchTerms([]);
-                        setSelectedDiarios([]);
-                        setSearchResults([]);
-                        setShowDiarioDropdown(false);
-                        setShowDateFilters(false);
-                        setShowCustomDateRange(false);
-                      }}
-                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Nova busca
-                    </button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                        {searchResults.map((result) => (
-                          <div
-                            key={result.id}
-                            className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 hover:shadow-lg"
-                          >
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex-1">
-                                <h4 className="text-lg font-semibold text-white mb-2 line-clamp-2">
-                                  {result.title}
-                                </h4>
-                                <div className="flex items-center gap-3 text-sm text-gray-400 mb-3">
-                                  <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
-                                    {result.source}
-                                  </span>
-                                  <span>{result.date}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-gray-300 text-sm mb-4 line-clamp-3">
-                              {result.excerpt}
-                            </p>
-                            <div className="flex items-center justify-between">
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedPublication(result);
-                                    openDrawer();
-                                  }}
-                                  className="px-4 py-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                                >
-                                  <EyeIcon className="h-4 w-4" />
-                                  Ver mais
-                                </button>
-                                <button className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                  <ArrowDownTrayIcon className="h-4 w-4" />
-                                  PDF
-                                </button>
-                              </div>
-                              <button
-                                onClick={handleSaveAsMonitor}
-                                className="px-4 py-2 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                              >
-                                <BellIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                )}
-
-              {/* Empty state */}
-              {searchResults.length === 0 && !isSearching && searchTerms.length > 0 && selectedDiarios.length > 0 && (
-                <div className="text-center py-8 sm:py-12">
-                  <DocumentTextIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-sm font-semibold text-white mb-2 sm:text-base">Nenhum resultado encontrado</h3>
-                  <p className="text-sm text-gray-400">
-                    Tente ampliar o período de busca, incluir mais diários ou usar termos diferentes.
-                  </p>
-                </div>
-              )}
             </div>
           )}
+
 
           {/* Monitorar Tab */}
           {activeTab === 'monitorar' && (
@@ -1196,7 +1210,15 @@ export default function DiariosOficiais() {
                   <h3 className="text-base font-semibold text-white sm:text-lg">Monitoramentos</h3>
                   <p className="text-sm text-gray-400 sm:text-base">Gerencie seus alertas de palavras-chave</p>
                 </div>
-                {monitoramentos.length > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateContextMonitor}
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    Teste Contexto
+                  </button>
+                  {monitoramentos.length > 0 && (
                   <button
                     onClick={() => {
                       setShowCreateForm(true);
@@ -1206,13 +1228,14 @@ export default function DiariosOficiais() {
                       setValidationError('');
                       setEditingMonitor(null);
                     }}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <PlusIcon className="h-3 w-3" />
                     <span className="hidden sm:inline">Adicionar novo alerta</span>
                     <span className="sm:hidden">Adicionar</span>
                   </button>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Formulário de criação rápida */}
@@ -1350,11 +1373,11 @@ export default function DiariosOficiais() {
                     </div>
 
                     {/* Diários selecionados */}
-                    {monitorDiarios.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-2">
-                          Diários Selecionados ({monitorDiarios.length})
-                        </label>
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Diários Selecionados ({monitorDiarios.length})
+                      </label>
+                      {monitorDiarios.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {monitorDiarios.map((diarioId) => {
                             const diario = diarios.find(d => d.id === diarioId);
@@ -1377,8 +1400,10 @@ export default function DiariosOficiais() {
                             );
                           })}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-gray-400 text-sm">Nenhum diário selecionado</p>
+                      )}
+                    </div>
                     
                     <div className="flex gap-3">
                       {editingMonitor !== null ? (
@@ -1420,7 +1445,7 @@ export default function DiariosOficiais() {
               {/* Lista de monitoramentos */}
               <div className="space-y-4">
                 {monitoramentos.length > 0 ? (
-                  monitoramentos.filter(monitoramento => monitoramento.id !== editingMonitor).map((monitoramento) => {
+                  monitoramentos.map((monitoramento) => {
                     const diariosNames = monitoramento.diarios.map(id => {
                       const diario = diarios.find(d => d.id === id);
                       return diario ? diario.name : id;
@@ -1517,29 +1542,27 @@ export default function DiariosOficiais() {
                     );
                   })
                 ) : (
-                  !hasClickedCreateMonitor && (
-                    <div className="text-center py-8 sm:py-12">
-                      <BellIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                      <h4 className="text-sm font-semibold text-white mb-2 sm:text-base">Você ainda não possui monitoramento de termos cadastrado.</h4>
-                      <p className="text-sm text-gray-400 mb-4">Crie alertas para acompanhar termos específicos nos diários oficiais.</p>
-                      <button 
-                        onClick={() => {
-                          setShowCreateForm(true);
-                          setMonitorTermInput('');
-                          setValidationError('');
-                          setEditingMonitor(null);
-                          setMonitorTerm('');
-                          setHasClickedCreateMonitor(true);
-                        }}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
-                      >
-                        Crie seu primeiro monitoramento
-                      </button>
-                      <p className="text-xs text-gray-500 mt-3">
-                        💡 Você pode pausar ou editar o alerta quando quiser
-                      </p>
-                    </div>
-                  )
+                  <div className="text-center py-8 sm:py-12">
+                    <BellIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                    <h4 className="text-sm font-semibold text-white mb-2 sm:text-base">Nenhum monitoramento ativo</h4>
+                    <p className="text-sm text-gray-400 mb-4">Crie alertas para acompanhar termos específicos nos diários oficiais.</p>
+                    <button 
+                      onClick={() => {
+                        setShowCreateForm(true);
+                        setMonitorTermInput('');
+                        setValidationError('');
+                        setEditingMonitor(null);
+                        setMonitorTerm('');
+                        setHasClickedCreateMonitor(true);
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      Criar Monitoramento
+                    </button>
+                    <p className="text-xs text-gray-500 mt-3">
+                      💡 Você pode pausar ou editar o alerta quando quiser
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -1682,16 +1705,13 @@ export default function DiariosOficiais() {
                     </label>
                     
                     <div className="bg-white/5 border border-white/20 rounded-xl p-4 sm:p-6">
-                      <div className="input-with-icon">
-                        <CalendarIcon className="input-icon h-5 w-5 text-gray-400" />
-                        <input
-                          type="date"
-                          value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          max={new Date().toISOString().split('T')[0]}
-                          className="input-standard text-xs w-full"
-                        />
-                      </div>
+                      <DatePicker
+                        selectedDate={selectedDate ? new Date(selectedDate) : null}
+                        onChange={(date) => setSelectedDate(date ? date.toISOString().split('T')[0] : '')}
+                        maxDate={new Date()}
+                        placeholder="dd/mm/aaaa"
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1729,7 +1749,7 @@ export default function DiariosOficiais() {
                                 </span>
                                 {expandedSections['dou-today'] ? 'Ocultar seções' : 'Ver seções'}
                               </button>
-                              <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5">
+                              <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
                                 <EyeIcon className="h-3 w-3" />
                                 Visualizar
                               </button>
@@ -1757,7 +1777,7 @@ export default function DiariosOficiais() {
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
-                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <ArrowDownTrayIcon className="h-2.5 w-2.5" />
                                   PDF
                                 </button>
@@ -1777,7 +1797,7 @@ export default function DiariosOficiais() {
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
-                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <ArrowDownTrayIcon className="h-2.5 w-2.5" />
                                   PDF
                                 </button>
@@ -1797,7 +1817,7 @@ export default function DiariosOficiais() {
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
-                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <ArrowDownTrayIcon className="h-2.5 w-2.5" />
                                   PDF
                                 </button>
@@ -1818,7 +1838,7 @@ export default function DiariosOficiais() {
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
-                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <ArrowDownTrayIcon className="h-2.5 w-2.5" />
                                   PDF
                                 </button>
@@ -1839,7 +1859,7 @@ export default function DiariosOficiais() {
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
-                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <ArrowDownTrayIcon className="h-2.5 w-2.5" />
                                   PDF
                                 </button>
@@ -1865,7 +1885,7 @@ export default function DiariosOficiais() {
                                 </p>
                               </div>
                               <div className="flex gap-2">
-                                <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5">
+                                <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
                                   <EyeIcon className="h-3 w-3" />
                                   Visualizar
                                 </button>
@@ -1896,7 +1916,7 @@ export default function DiariosOficiais() {
                               </p>
                             </div>
                             <div className="flex gap-2">
-                              <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5">
+                              <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
                                 <EyeIcon className="h-3 w-3" />
                                 Visualizar
                               </button>
@@ -1924,6 +1944,109 @@ export default function DiariosOficiais() {
           )}
         </div>
       </div>
+
+      {/* Seção de Resultados Separada - Fora do container principal */}
+      {activeTab === 'buscar' && searchResults.length > 0 && (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 md:pb-24 -mt-4">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-3 sm:p-4 md:p-6 card-hover-glow">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-base font-semibold text-white sm:text-lg">
+                Resultados ({searchResults.length})
+              </h3>
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchTerms([]);
+                  setSelectedDiarios([]);
+                  setSearchResults([]);
+                  setShowDiarioDropdown(false);
+                  setShowDateFilters(false);
+                  setShowCustomDateRange(false);
+                }}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Nova busca
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+              {searchResults.map((result) => (
+                <div
+                  key={result.id}
+                  className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 hover:shadow-lg"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-semibold text-white mb-2 line-clamp-2">
+                        {result.title}
+                      </h4>
+                      <div className="flex items-center gap-3 text-sm text-gray-400 mb-3">
+                        <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
+                          {result.source}
+                        </span>
+                        <span>{result.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                    {result.excerpt}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedPublication(result);
+                          openDrawer();
+                        }}
+                        className="px-4 py-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                        Ver mais
+                      </button>
+                      <button className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer">
+                        <ArrowDownTrayIcon className="h-4 w-4" />
+                        PDF
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => handleSaveAsMonitor(result.title)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
+                        monitoredTerms.has(result.title)
+                          ? 'bg-green-600/30 text-green-200'
+                          : 'bg-green-600/20 text-green-300 hover:bg-green-600/30'
+                      }`}
+                    >
+                      {monitoredTerms.has(result.title) ? (
+                        <CheckIcon className="h-4 w-4" />
+                      ) : (
+                        <BellIcon className="h-4 w-4" />
+                      )}
+                      {monitoredTerms.has(result.title) && (
+                        <span className="text-xs">Termo monitorado</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state separado - Fora do container principal */}
+      {activeTab === 'buscar' && searchResults.length === 0 && !isSearching && hasSearched && (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 md:pb-24 -mt-4">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-3 sm:p-4 md:p-6 card-hover-glow">
+            <div className="text-center py-8 sm:py-12">
+              <DocumentTextIcon className="h-10 w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-sm font-semibold text-white mb-2 sm:text-base">Nenhum resultado encontrado</h3>
+              <p className="text-sm text-gray-400">
+                Tente ampliar o período de busca, incluir mais diários ou usar termos diferentes.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Drawer de Preview */}
       {showDrawer && (
@@ -2052,7 +2175,7 @@ export default function DiariosOficiais() {
                           A Secretaria de Educação torna público o edital de concurso público para provimento de vagas...
                         </p>
                         <div className="flex gap-2">
-                          <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5">
+                          <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
                             <EyeIcon className="h-3 w-3" />
                             Visualizar
                           </button>
@@ -2105,6 +2228,46 @@ export default function DiariosOficiais() {
         isOpen={isTestModalOpen}
         onClose={() => setIsTestModalOpen(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-12 h-12 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-white mb-2">
+                Excluir Monitoramento
+              </h3>
+              <p className="text-sm text-gray-300 mb-6">
+                Tem certeza que deseja excluir este monitoramento? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletingMonitoringId(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

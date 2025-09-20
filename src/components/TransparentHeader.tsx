@@ -347,7 +347,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
         {/* NÍVEL 1: Logo + Busca + Botões de Auth */}
         <div className="flex items-center py-4">
           {/* Logo */}
-          <div className="flex lg:max-w-[200px]">
+          <div className="flex lg:max-w-[180px]">
             <Link href="/" className="-m-1 p-1">
               <span className="sr-only">ecioo</span>
               <EciooLogo className="h-8 w-24" />
@@ -355,8 +355,8 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
           </div>
           
           {/* Barra de busca global - Desktop */}
-          <div className="hidden lg:flex lg:flex-1 lg:justify-center lg:px-4">
-            <div className="relative w-full max-w-lg">
+          <div className="hidden lg:flex lg:flex-1 lg:justify-center lg:px-8">
+            <div className="relative w-full max-w-2xl">
               <form onSubmit={handleSearch} className="relative w-full">
                 {/* Dropdown de filtro customizado */}
                 <div className="absolute left-0 top-0 z-10 dropdown-container">
@@ -364,7 +364,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
                     ref={dropdownRef}
                     type="button"
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="h-10 px-3 pr-6 bg-white/10 border border-white/20 rounded-l-full focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 text-white text-base font-medium cursor-pointer backdrop-blur-sm hover:bg-white/15 flex items-center whitespace-nowrap"
+                    className="h-10 px-3 pr-6 bg-white/10 border border-white/20 rounded-l-full focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/40 text-white text-sm font-medium cursor-pointer backdrop-blur-sm hover:bg-white/15 flex items-center whitespace-nowrap"
                     style={{ minWidth: 'fit-content' }}
                   >
                     {getSelectedFilterLabel()}
@@ -479,7 +479,7 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
           </div>
 
           {/* Botões de autenticação */}
-          <div className="hidden lg:flex lg:items-center lg:space-x-3">
+          <div className="hidden lg:flex lg:items-center lg:space-x-3 lg:max-w-[200px] lg:justify-end">
             <button
               onClick={handleTrialClick}
               className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-md text-base font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
@@ -509,8 +509,8 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
         </div>
 
         {/* NÍVEL 2: Links de Navegação */}
-        <div className="hidden lg:flex lg:justify-center lg:py-2">
-          <div className="flex gap-x-8">
+        <div className="hidden lg:flex lg:justify-center lg:py-3">
+          <div className="flex gap-x-10 -ml-8">
             <Link 
               href="/" 
               className={`text-base font-medium leading-5 transition-colors duration-200 ${
