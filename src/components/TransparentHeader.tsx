@@ -486,9 +486,9 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             >
               Criar conta
             </button>
-            <a href="#" className="cta-secondary text-base font-medium leading-5 text-white hover:text-blue-400 cursor-pointer">
+            <Link href="/login" className="cta-secondary text-base font-medium leading-5 text-white hover:text-blue-400 cursor-pointer">
               Entrar <span aria-hidden="true">→</span>
-            </a>
+            </Link>
           </div>
 
           {/* Menu mobile */}
@@ -752,13 +752,13 @@ export default function TransparentHeader({ currentPage = '', onTrialClick }: Tr
             </Link>
             {/* Botões de autenticação mobile */}
             <div className="pt-4 border-t border-white/10 space-y-2">
-              <a 
-                href="#" 
+              <Link
+                href="/login"
                 className="block px-3 py-2 text-base font-medium text-white hover:text-blue-400 transition-colors duration-200 cursor-pointer"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Entrar <span aria-hidden="true">→</span>
-              </a>
+              </Link>
               <button
                 onClick={() => {
                   handleTrialClick();

@@ -41,7 +41,7 @@ export function useRevealAnimation(options: RevealOptions = {}) {
       const htmlElement = element as HTMLElement;
       htmlElement.style.opacity = '0';
       htmlElement.style.transform = 'translateY(30px)';
-      htmlElement.style.transition = 'opacity 700ms cubic-bezier(0.22, 1, 0.36, 1), transform 700ms cubic-bezier(0.22, 1, 0.36, 1)';
+      htmlElement.style.transition = 'opacity 500ms cubic-bezier(0.22, 1, 0.36, 1), transform 500ms cubic-bezier(0.22, 1, 0.36, 1)';
       observer.observe(htmlElement);
     });
 

@@ -49,7 +49,7 @@ export default function BenefitRail({ items, activeId, onSelect }: BenefitRailPr
 
   return (
     <aside 
-      className="h-full grid grid-rows-4 gap-3 min-h-[400px]"
+      className="h-full grid grid-rows-4 gap-3 min-h-[400px] overflow-visible"
       onKeyDown={handleArrowKey}
       role="tablist"
       aria-label="Benefícios disponíveis"
@@ -78,8 +78,8 @@ export default function BenefitRail({ items, activeId, onSelect }: BenefitRailPr
                 : ''
               }
             `}
-            whileHover={{ scale: 1.02 }}
-            whileFocus={{ scale: 1.02 }}
+            whileHover={{}}
+            whileFocus={{}}
           >
             
             {/* Content */}

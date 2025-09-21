@@ -156,6 +156,12 @@ function ExplorarContent() {
   const [currentProcessoDetailsPage, setCurrentProcessoDetailsPage] = useState(1);
   const [processosDetailsPerPage] = useState(10);
   
+  // Estados para visualização do diário oficial no card principal
+  const [showDiarioView, setShowDiarioView] = useState(false);
+  const [selectedDiarioForView, setSelectedDiarioForView] = useState<any>(null);
+  const [currentDiarioPage, setCurrentDiarioPage] = useState(4329);
+  const [totalDiarioPages] = useState(5000);
+  
   // Converter sugestões para formato do portal
   const processoSuggestionsForPortal = processoSuggestions.map((suggestion, index) => ({
     id: `${suggestion}-${index}`,
@@ -1753,6 +1759,112 @@ function ExplorarContent() {
     ]
   };
 
+  // Mock data para conteúdo dos diários oficiais
+  const mockDiarioContent = {
+    1: { // Rafael Ximenes
+      id: 1,
+      titulo: 'Diário Oficial da União - 24/11/2024',
+      tribunal: 'TRT da 9ª Região',
+      data: '24/11/2024',
+      secao: 'Seção 1 - Atos do Poder Executivo',
+      edicao: '45674',
+      conteudo: `
+        <div class="diario-content">
+          <div class="header">
+            <h2>TRT da 9ª Região 24/11/2024 | TRT-9</h2>
+            <p class="categoria">Judiciário</p>
+          </div>
+          
+          <div class="breadcrumb">
+            <span>Diários Oficiais >> TRT-9 >> 24/11/2024</span>
+          </div>
+          
+          <div class="content-body">
+            <p class="intimacao">
+              Fica a Sra. intimada a informar o atual endereço residencial do executado ou bens de sua propriedade passíveis de penhora, observando a ordem preferencial prevista no art. 835 do CPC, conforme despacho de ID a5c0b1.
+            </p>
+            <p class="data">24 de Novembro de 2024</p>
+            <p class="responsavel"><strong>RAFAEL XIMENES BARBOSA</strong> - Estagiário</p>
+            
+            <div class="despacho">
+              <h3>Despacho</h3>
+              <ul>
+                <li><strong>Processo Nº:</strong> RTOrd-000XXXX-70.2014.5.09.0672</li>
+                <li><strong>AUTOR:</strong> Rafael Ximenes Barbosa</li>
+                <li><strong>ADVOGADO:</strong> ALEX FREZZATO (OAB: 37966/PR)</li>
+                <li><strong>RÉU:</strong> GUEDES MORAIS INDUSTRIA E COMERCIO DE RECICLAVEIS PLASTICOS EIRELI - ME</li>
+                <li><strong>ADVOGADO:</strong> MARCELO AUGUSTUS VIEIRA (OAB: 44256/PR)</li>
+                <li><strong>RÉU:</strong> MUNICIPIO DE IBAITI</li>
+                <li><strong>ADVOGADO:</strong> CESAR AUGUSTO DE MELLO E SILVA (OAB: 12799/PR)</li>
+              </ul>
+            </div>
+            
+            <div class="intimados">
+              <h3>Intimado(s)/Citado(s):</h3>
+              <ul>
+                <li>- Rafael Ximenes Barbosa</li>
+                <li>POSTO DE ATENDIMENTO DA JUSTIÇA DO TRABALHO DE IBAITI</li>
+                <li>AÇÃO TRABALHISTA - RITO ORDINÁRIO (985) 0000730-70.2014.5.09.0672</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      `,
+      termoProcurado: 'Rafael Ximenes'
+    },
+    2: { // Edital de Concurso
+      id: 2,
+      titulo: 'Diário Oficial do Estado de São Paulo - 23/11/2024',
+      tribunal: 'Secretaria de Estado da Educação',
+      data: '23/11/2024',
+      secao: 'Seção 1 - Atos do Poder Executivo',
+      edicao: '45673',
+      conteudo: `
+        <div class="diario-content">
+          <div class="header">
+            <h2>Secretaria de Estado da Educação - 23/11/2024 | SP</h2>
+            <p class="categoria">Executivo</p>
+          </div>
+          
+          <div class="breadcrumb">
+            <span>Diários Oficiais >> SP >> 23/11/2024</span>
+          </div>
+          
+          <div class="content-body">
+            <p class="edital">
+              <strong>EDITAL DE CONCURSO PÚBLICO Nº 001/2024</strong><br>
+              A Secretaria de Estado da Educação torna público que realizará concurso público para provimento de vagas nos cargos de Analista em Tecnologia da Informação, conforme especificado neste edital.
+            </p>
+            <p class="data">23 de Novembro de 2024</p>
+            <p class="responsavel"><strong>RAFAEL XIMENES CARDOSO</strong> - Coordenador</p>
+            
+            <div class="despacho">
+              <h3>Informações do Concurso</h3>
+              <ul>
+                <li><strong>Número do Edital:</strong> 001/2024</li>
+                <li><strong>Modalidade:</strong> Concurso Público</li>
+                <li><strong>Órgão:</strong> Secretaria de Estado da Educação</li>
+                <li><strong>Cargo:</strong> Analista em Tecnologia da Informação</li>
+                <li><strong>Vagas:</strong> 50 (cinquenta)</li>
+                <li><strong>Remuneração:</strong> R$ 8.500,00</li>
+              </ul>
+            </div>
+            
+            <div class="intimados">
+              <h3>Requisitos:</h3>
+              <ul>
+                <li>- Nível Superior em Tecnologia da Informação ou áreas afins</li>
+                <li>- Experiência mínima de 2 anos na área</li>
+                <li>- Conhecimento em programação e análise de sistemas</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      `,
+      termoProcurado: 'Rafael Ximenes'
+    }
+  };
+
   // Estados para paginação dos detalhes de Diários Oficiais na aba Tudo
   const [currentDiarioTudoDetailsPage, setCurrentDiarioTudoDetailsPage] = useState(1);
   const [diariosTudoDetailsPerPage] = useState(10);
@@ -1774,6 +1886,75 @@ function ExplorarContent() {
 
   const handleDiarioTudoDetailsPageChange = (page: number) => {
     setCurrentDiarioTudoDetailsPage(page);
+  };
+
+  // Função para visualizar diário no card principal
+  const handleVisualizarDiario = (diarioId: string) => {
+    // Encontrar o diário nos dados mock
+    const diario = getCurrentDiarioTudoDetails().find((d: any) => d.id === diarioId) || 
+                   getCurrentDiariosOficiais().find((d: any) => d.id === diarioId);
+    
+    if (diario) {
+      setSelectedDiarioForView(diario);
+      setShowDiarioView(true);
+      // Garantir que a lista de detalhes seja ocultada
+      setShowDiarioOficialDetails(false);
+      setSelectedDiarioOficialId(null);
+    }
+  };
+
+  // Função para voltar à visualização anterior
+  const backToDiarioList = () => {
+    setShowDiarioView(false);
+    setSelectedDiarioForView(null);
+  };
+
+  // Função para gerar números de página da paginação
+  const generatePaginationNumbers = (currentPage: number, totalPages: number) => {
+    const delta = 2; // Número de páginas para mostrar ao redor da página atual
+    const range = [];
+    const rangeWithDots = [];
+
+    // Sempre mostrar primeira página
+    range.push(1);
+
+    // Calcular páginas ao redor da página atual
+    const start = Math.max(2, currentPage - delta);
+    const end = Math.min(totalPages - 1, currentPage + delta);
+
+    // Adicionar páginas próximas à atual
+    for (let i = start; i <= end; i++) {
+      range.push(i);
+    }
+
+    // Sempre mostrar última página
+    if (totalPages > 1) {
+      range.push(totalPages);
+    }
+
+    // Remover duplicatas e ordenar
+    const uniqueRange = [...new Set(range)].sort((a, b) => a - b);
+
+    // Adicionar ellipsis onde necessário
+    let prev = 0;
+    for (const page of uniqueRange) {
+      if (page - prev === 2) {
+        rangeWithDots.push(prev + 1);
+      } else if (page - prev !== 1) {
+        rangeWithDots.push('...');
+      }
+      rangeWithDots.push(page);
+      prev = page;
+    }
+
+    return rangeWithDots;
+  };
+
+  // Função para navegar para uma página específica
+  const handleDiarioPageChange = (page: number) => {
+    if (page >= 1 && page <= totalDiarioPages) {
+      setCurrentDiarioPage(page);
+    }
   };
 
   // Memoizar classes dos filtros para evitar flicker
@@ -2490,7 +2671,7 @@ function ExplorarContent() {
               {/* Aba Tudo - Feed Misto */}
               {activeTab === 'tudo' && (
                 <div className="space-y-6 fade-in" key="tudo">
-                  {!showTudoDetails ? (
+                  {!showTudoDetails && !showDiarioView ? (
                     <>
                       <h3 className="text-lg font-semibold text-white mb-4">
                         Foram encontrados 50 resultados para o termo &quot;{query}&quot;
@@ -2604,6 +2785,149 @@ function ExplorarContent() {
                         </div>
                       )}
                     </>
+                  ) : showDiarioView ? (
+                    // Visualização do diário oficial
+                    <div className="space-y-4">
+                      <div className="bg-white/5 rounded-lg p-8 border border-white/10">
+                        {/* Header do Diário */}
+                        <div className="flex items-center justify-between mb-8">
+                          <div>
+                            <h2 className="text-2xl font-bold text-white mb-2">TRT da 9ª Região 24/11/2024 | TRT-9</h2>
+                            <p className="text-gray-400">Judiciário</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={backToDiarioList}
+                              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                              </svg>
+                              Voltar
+                            </button>
+                            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-300 bg-blue-500/20 border border-blue-400/30 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer">
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              VISUALIZAR PDF
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Breadcrumb */}
+                        <div className="text-sm text-gray-400 mb-8 pb-4 border-b border-white/10">
+                          <span>Diários Oficiais {'>>'} TRT-9 {'>>'} 24/11/2024</span>
+                        </div>
+
+                        {/* Conteúdo do Diário - Simulação de HTML direto */}
+                        <div className="text-gray-300 text-sm leading-relaxed space-y-3">
+                          <p>
+                            Fica a Sra. intimada a informar o atual endereço residencial do executado ou bens de sua propriedade passíveis de penhora, observando a ordem preferencial prevista no art. 835 do CPC, conforme despacho de ID a5c0b1.
+                          </p>
+                          
+                          <p className="text-gray-400 text-xs">
+                            24 de Novembro de 2024
+                          </p>
+                          
+                          <p>
+                            <strong className="bg-yellow-300 text-black px-1 rounded">
+                              RAFAEL XIMENES
+                            </strong> - Estagiário
+                          </p>
+                          
+                          <div className="mt-6">
+                            <p className="font-semibold text-white mb-2">Despacho</p>
+                            <p>
+                              <strong>Processo Nº:</strong> RTOrd-000XXXX-70.2014.5.09.0672
+                            </p>
+                            <p>
+                              <strong>AUTOR:</strong> <span className="bg-yellow-300 text-black px-1 rounded">
+                                Rafael Ximenes
+                              </span>
+                            </p>
+                            <p>
+                              <strong>ADVOGADO:</strong> ALEX FREZZATO (OAB: 37966/PR)
+                            </p>
+                            <p>
+                              <strong>RÉU:</strong> GUEDES MORAIS INDUSTRIA E COMERCIO DE RECICLAVEIS PLASTICOS EIRELI - ME
+                            </p>
+                            <p>
+                              <strong>ADVOGADO:</strong> MARCELO AUGUSTUS VIEIRA (OAB: 44256/PR)
+                            </p>
+                            <p>
+                              <strong>RÉU:</strong> MUNICIPIO DE IBAITI
+                            </p>
+                            <p>
+                              <strong>ADVOGADO:</strong> CESAR AUGUSTO DE MELLO E SILVA (OAB: 12799/PR)
+                            </p>
+                          </div>
+                          
+                          <div className="mt-6">
+                            <p className="font-semibold text-white mb-2">Intimado(s)/Citado(s):</p>
+                            <p>
+                              - <span className="bg-yellow-300 text-black px-1 rounded">
+                                Rafael Ximenes
+                              </span>
+                            </p>
+                            <p>
+                              - POSTO DE ATENDIMENTO DA JUSTIÇA DO TRABALHO DE IBAITI
+                            </p>
+                            <p>
+                              - AÇÃO TRABALHISTA - RITO ORDINÁRIO (985) 0000730-70.2014.5.09.0672
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Paginação */}
+                        <div className="mt-8 pt-6 border-t border-white/10">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-400">
+                              Página {currentDiarioPage} de {totalDiarioPages}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {/* Botão Anterior */}
+                              <button 
+                                onClick={() => handleDiarioPageChange(currentDiarioPage - 1)}
+                                disabled={currentDiarioPage === 1}
+                                className="px-3 py-2 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                              >
+                                &lt;
+                              </button>
+                              
+                              {/* Números de página */}
+                              {generatePaginationNumbers(currentDiarioPage, totalDiarioPages).map((page, index) => (
+                                page === '...' ? (
+                                  <span key={`ellipsis-${index}`} className="px-3 py-2 text-sm font-medium text-gray-300">
+                                    ...
+                                  </span>
+                                ) : (
+                                  <button
+                                    key={page}
+                                    onClick={() => handleDiarioPageChange(page as number)}
+                                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                                      page === currentDiarioPage
+                                        ? 'text-blue-300 bg-blue-500/20 border border-blue-400/30'
+                                        : 'text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10'
+                                    }`}
+                                  >
+                                    {page}
+                                  </button>
+                                )
+                              ))}
+                              
+                              {/* Botão Próximo */}
+                              <button 
+                                onClick={() => handleDiarioPageChange(currentDiarioPage + 1)}
+                                disabled={currentDiarioPage === totalDiarioPages}
+                                className="px-3 py-2 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                              >
+                                &gt;
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     // Detalhes do item selecionado
                     <div className="space-y-4">
@@ -2651,13 +2975,6 @@ function ExplorarContent() {
                                       </div>
                                     </div>
                                   </div>
-                                  <button className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs flex items-center gap-1">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    Ver detalhes
-                                  </button>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
@@ -2883,8 +3200,11 @@ function ExplorarContent() {
                                 </div>
                                 
                                 {/* Botão posicionado no canto superior direito */}
-                                <button className="absolute top-4 right-4 px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs">
-                                  Visualizar diário oficial
+                                <button 
+                                  onClick={() => handleVisualizarDiario(diario.id)}
+                                  className="absolute top-4 right-4 px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs"
+                                >
+                                  Visualizar Diário
                                 </button>
                               </div>
                             ))}
@@ -3401,15 +3721,164 @@ function ExplorarContent() {
                   />
 
                   {/* Resultados da Busca */}
-                  {(isDiarioOficialLoading || diarioOficialSearchResults.length > 0) && (
+                  {isDiarioOficialLoading && (
                     <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6 relative z-0">
-                      {isDiarioOficialLoading ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
                           <span className="ml-3 text-gray-400">Buscando nos diários oficiais...</span>
                         </div>
-                      ) : showDiarioOficialDetails && selectedDiarioOficialId ? (
-                        // Exibir detalhes do diário selecionado
+                    </div>
+)}
+
+                  {/* Visualização do Diário Oficial */}
+                  {showDiarioView ? (
+                        // Visualização do diário oficial (mesma da aba TUDO)
+                        <div className="space-y-4">
+                          <div className="bg-white/5 rounded-lg p-8 border border-white/10">
+                            {/* Header do Diário */}
+                            <div className="flex items-center justify-between mb-8">
+                              <div>
+                                <h2 className="text-2xl font-bold text-white mb-2">TRT da 9ª Região 24/11/2024 | TRT-9</h2>
+                                <p className="text-gray-400">Judiciário</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={backToDiarioList}
+                                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                  </svg>
+                                  Voltar
+                                </button>
+                                <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-300 bg-blue-500/20 border border-blue-400/30 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer">
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  VISUALIZAR PDF
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Breadcrumb */}
+                            <div className="text-sm text-gray-400 mb-8 pb-4 border-b border-white/10">
+                              <span>Diários Oficiais {'>>'} TRT-9 {'>>'} 24/11/2024</span>
+                            </div>
+
+                            {/* Conteúdo do Diário - Simulação de HTML direto */}
+                            <div className="text-gray-300 text-sm leading-relaxed space-y-3">
+                              <p>
+                                Fica a Sra. intimada a informar o atual endereço residencial do executado ou bens de sua propriedade passíveis de penhora, observando a ordem preferencial prevista no art. 835 do CPC, conforme despacho de ID a5c0b1.
+                              </p>
+                              
+                              <p className="text-gray-400 text-xs">
+                                24 de Novembro de 2024
+                              </p>
+                              
+                              <p>
+                                <strong className="bg-yellow-300 text-black px-1 rounded">
+                                  RAFAEL XIMENES
+                                </strong> - Estagiário
+                              </p>
+                              
+                              <div className="mt-6">
+                                <p className="font-semibold text-white mb-2">Despacho</p>
+                                <p>
+                                  <strong>Processo Nº:</strong> RTOrd-000XXXX-70.2014.5.09.0672
+                                </p>
+                                <p>
+                                  <strong>AUTOR:</strong> <span className="bg-yellow-300 text-black px-1 rounded">
+                                    Rafael Ximenes
+                                  </span>
+                                </p>
+                                <p>
+                                  <strong>ADVOGADO:</strong> ALEX FREZZATO (OAB: 37966/PR)
+                                </p>
+                                <p>
+                                  <strong>RÉU:</strong> GUEDES MORAIS INDUSTRIA E COMERCIO DE RECICLAVEIS PLASTICOS EIRELI - ME
+                                </p>
+                                <p>
+                                  <strong>ADVOGADO:</strong> MARCELO AUGUSTUS VIEIRA (OAB: 44256/PR)
+                                </p>
+                                <p>
+                                  <strong>RÉU:</strong> MUNICIPIO DE IBAITI
+                                </p>
+                                <p>
+                                  <strong>ADVOGADO:</strong> CESAR AUGUSTO DE MELLO E SILVA (OAB: 12799/PR)
+                                </p>
+                              </div>
+                              
+                              <div className="mt-6">
+                                <p className="font-semibold text-white mb-2">Intimado(s)/Citado(s):</p>
+                                <p>
+                                  - <span className="bg-yellow-300 text-black px-1 rounded">
+                                    Rafael Ximenes
+                                  </span>
+                                </p>
+                                <p>
+                                  - POSTO DE ATENDIMENTO DA JUSTIÇA DO TRABALHO DE IBAITI
+                                </p>
+                                <p>
+                                  - AÇÃO TRABALHISTA - RITO ORDINÁRIO (985) 0000730-70.2014.5.09.0672
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Paginação */}
+                            <div className="mt-8 pt-6 border-t border-white/10">
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm text-gray-400">
+                                  Página {currentDiarioPage} de {totalDiarioPages}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {/* Botão Anterior */}
+                                  <button 
+                                    onClick={() => handleDiarioPageChange(currentDiarioPage - 1)}
+                                    disabled={currentDiarioPage === 1}
+                                    className="px-3 py-2 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                  >
+                                    &lt;
+                                  </button>
+                                  
+                                  {/* Números de página */}
+                                  {generatePaginationNumbers(currentDiarioPage, totalDiarioPages).map((page, index) => (
+                                    page === '...' ? (
+                                      <span key={`ellipsis-${index}`} className="px-3 py-2 text-sm font-medium text-gray-300">
+                                        ...
+                                      </span>
+                                    ) : (
+                                      <button
+                                        key={page}
+                                        onClick={() => handleDiarioPageChange(page as number)}
+                                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                                          page === currentDiarioPage
+                                            ? 'text-blue-300 bg-blue-500/20 border border-blue-400/30'
+                                            : 'text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10'
+                                        }`}
+                                      >
+                                        {page}
+                                      </button>
+                                    )
+                                  ))}
+                                  
+                                  {/* Botão Próximo */}
+                                  <button 
+                                    onClick={() => handleDiarioPageChange(currentDiarioPage + 1)}
+                                    disabled={currentDiarioPage === totalDiarioPages}
+                                    className="px-3 py-2 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                  >
+                                    &gt;
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                  ) : null}
+
+                  {/* Detalhes do Diário Selecionado */}
+                  {showDiarioOficialDetails && selectedDiarioOficialId && (
+                    <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6 relative z-0">
                         <div>
                           {/* Header com botão voltar */}
                           <div className="flex items-center justify-between mb-6">
@@ -3470,7 +3939,10 @@ function ExplorarContent() {
                                       </div>
                                       </div>
                                       </div>
-                                  <button className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs ml-4">
+                                  <button 
+                                    onClick={() => handleVisualizarDiario(diario.id)}
+                                    className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors cursor-pointer text-xs ml-4"
+                                  >
                                     Visualizar Diário
                                   </button>
                                     </div>
@@ -3546,8 +4018,14 @@ function ExplorarContent() {
           </div>
         )}
       </div>
-                      ) : (
-                        // Lista de resultados
+                    </div>
+)}
+
+                  {/* Lista de Resultados */}
+                  {diarioOficialSearchResults.length > 0 && !showDiarioView && !showDiarioOficialDetails && (
+                    <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6 relative z-0">
+                      <div>
+                        {/* Lista de resultados */}
                         <div>
                           <h4 className="text-lg font-semibold text-white mb-4">
                             Encontramos {diarioOficialSearchResults.length} resultados de &quot;{diarioOficialSearchTerm}&quot;
@@ -3602,7 +4080,7 @@ function ExplorarContent() {
                             })}
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -3618,6 +4096,7 @@ function ExplorarContent() {
         isOpen={isTestModalOpen}
         onClose={() => setIsTestModalOpen(false)}
       />
+
 
     </div>
   );

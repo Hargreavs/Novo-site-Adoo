@@ -48,7 +48,7 @@ function AnimatedSection({ id, className, children }: { id: string; className?: 
     <div
       ref={ref}
       id={id}
-      className={`${className} transition-all duration-1000 ${
+      className={`${className} transition-all duration-500 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
     >

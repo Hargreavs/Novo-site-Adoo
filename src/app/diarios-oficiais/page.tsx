@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import RegisterModal from '@/components/RegisterModal';
 import TransparentHeader from '@/components/TransparentHeader';
 import TestModal from '@/components/TestModal';
@@ -33,6 +33,7 @@ export default function DiariosOficiais() {
   const [searchPeriod, setSearchPeriod] = useState('7d');
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState({ start: undefined as Date | undefined, end: undefined as Date | undefined });
+  const [dateValidationError, setDateValidationError] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{
@@ -42,6 +43,11 @@ export default function DiariosOficiais() {
     date: string;
     excerpt: string;
     url: string;
+    sections?: Array<{
+      id: string;
+      name: string;
+      url: string;
+    }>;
   }>>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingMonitoringId, setDeletingMonitoringId] = useState<number | null>(null);
@@ -65,7 +71,7 @@ export default function DiariosOficiais() {
   }>>([
     {
       id: 1,
-      terms: ['concurso público', 'edital'],
+      terms: ['concurso público'],
       diarios: ['dou', 'dosp'],
       isActive: true,
       createdAt: '2024-01-10',
@@ -73,59 +79,11 @@ export default function DiariosOficiais() {
     },
     {
       id: 2,
-      terms: ['licitação', 'pregão'],
+      terms: ['licitação'],
       diarios: ['dou', 'dom'],
       isActive: true,
       createdAt: '2024-01-08',
       occurrences: 8
-    },
-    {
-      id: 3,
-      terms: ['nomeação', 'decreto'],
-      diarios: ['dou'],
-      isActive: false,
-      createdAt: '2024-01-05',
-      occurrences: 3
-    },
-    {
-      id: 4,
-      terms: ['monitoramento de contexto'],
-      diarios: ['dou'],
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      occurrences: 8
-    },
-    {
-      id: 5,
-      terms: ['concurso público', 'prova', 'inscrição'],
-      diarios: ['dou', 'dosp', 'dom'],
-      isActive: true,
-      createdAt: '2024-01-12',
-      occurrences: 22
-    },
-    {
-      id: 6,
-      terms: ['edital de concurso', 'cargo público'],
-      diarios: ['dou', 'dosp'],
-      isActive: true,
-      createdAt: '2024-01-14',
-      occurrences: 18
-    },
-    {
-      id: 8,
-      terms: ['concurso', 'seleção pública', 'vagas'],
-      diarios: ['dou', 'dom'],
-      isActive: true,
-      createdAt: '2024-01-16',
-      occurrences: 12
-    },
-    {
-      id: 7,
-      terms: ['concurso público', 'tribunal', 'justiça'],
-      diarios: ['dou'],
-      isActive: false,
-      createdAt: '2024-01-18',
-      occurrences: 7
     }
   ]);
 
@@ -354,6 +312,35 @@ export default function DiariosOficiais() {
     }
   };
 
+  // Função para atualizar data inicial com validação
+  const handleStartDateChange = (date: Date | undefined) => {
+    setDateValidationError(''); // Limpar erro anterior
+    
+    if (date) {
+      // Se a data final existe e é anterior à nova data inicial, resetar a data final
+      if (customDateRange.end && customDateRange.end < date) {
+        setCustomDateRange({ start: date, end: undefined });
+        setDateValidationError('Data final foi resetada pois era anterior à nova data inicial');
+      } else {
+        setCustomDateRange({ ...customDateRange, start: date });
+      }
+    } else {
+      setCustomDateRange({ ...customDateRange, start: undefined });
+    }
+  };
+
+  // Função para atualizar data final com validação
+  const handleEndDateChange = (date: Date | undefined) => {
+    setDateValidationError(''); // Limpar erro anterior
+    
+    if (date && customDateRange.start && date < customDateRange.start) {
+      // Se a data final é anterior à data inicial, mostrar erro
+      setDateValidationError('A data final deve ser posterior à data inicial');
+      return;
+    }
+    setCustomDateRange({ ...customDateRange, end: date });
+  };
+
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({
       ...prev,
@@ -368,12 +355,12 @@ export default function DiariosOficiais() {
     }));
   };
 
-  const toggleNavegarCategory = (category: string) => {
+  const toggleNavegarCategory = useCallback((category: string) => {
     setNavegarExpandedCategories(prev => ({
       ...prev,
       [category]: !prev[category]
     }));
-  };
+  }, []);
 
   // Funções de toggle para nova estrutura hierárquica
   const togglePoder = (poder: string, tab: 'buscar' | 'monitorar' | 'navegar') => {
@@ -399,43 +386,31 @@ export default function DiariosOficiais() {
     }));
   };
 
-  const toggleSections = (editionId: string) => {
+  const toggleSections = useCallback((editionId: string) => {
     const isCurrentlyExpanded = expandedSections[editionId];
     
     if (isCurrentlyExpanded) {
-      // Se está expandido, iniciar animação de fade-out
+      // Se está expandido, colapsar imediatamente
+      setExpandedSections(prev => ({
+        ...prev,
+        [editionId]: false
+      }));
       setSectionAnimations(prev => ({
         ...prev,
-        [editionId]: 'sections-fade-out'
+        [editionId]: ''
       }));
-      
-      // Após a animação, colapsar e limpar a animação
-      setTimeout(() => {
-        setExpandedSections(prev => ({
-          ...prev,
-          [editionId]: false
-        }));
-        setSectionAnimations(prev => ({
-          ...prev,
-          [editionId]: ''
-        }));
-      }, 300); // Duração da animação
     } else {
-      // Se está colapsado, expandir e iniciar animação de fade-in
+      // Se está colapsado, expandir imediatamente com animação
       setExpandedSections(prev => ({
         ...prev,
         [editionId]: true
       }));
-      
-      // Pequeno delay para garantir que o DOM foi atualizado
-      setTimeout(() => {
-        setSectionAnimations(prev => ({
-          ...prev,
-          [editionId]: 'sections-fade-in'
-        }));
-      }, 10);
+      setSectionAnimations(prev => ({
+        ...prev,
+        [editionId]: 'animate-in slide-in-from-bottom-2 fade-in-0 duration-200'
+      }));
     }
-  };
+  }, [expandedSections]);
 
 
   // Funções para controlar animações dos drawers
@@ -513,7 +488,12 @@ export default function DiariosOficiais() {
           source: 'DOU',
           date: '2024-01-15',
           excerpt: 'A Secretaria de Educação torna público o edital de concurso público para provimento de vagas...',
-          url: '#'
+          url: '#',
+          sections: [
+            { id: 's1', name: 'Seção 1', url: '#' },
+            { id: 's2', name: 'Seção 2', url: '#' },
+            { id: 's3', name: 'Seção 3', url: '#' }
+          ]
         },
         {
           id: 2,
@@ -529,7 +509,12 @@ export default function DiariosOficiais() {
           source: 'DOU',
           date: '2024-01-13',
           excerpt: 'O Presidente da República, no uso das atribuições que lhe confere o art. 84...',
-          url: '#'
+          url: '#',
+          sections: [
+            { id: 's1', name: 'Seção 1', url: '#' },
+            { id: 's2', name: 'Seção 2', url: '#' },
+            { id: 's3', name: 'Seção 3', url: '#' }
+          ]
         },
         {
           id: 4,
@@ -636,11 +621,230 @@ export default function DiariosOficiais() {
 
   const filteredDiariosPorPoder = getFilteredDiariosPorPoder(diarioSearchTerm);
 
+  // Auto-expandir categorias na aba Buscar Termos quando um diário específico é encontrado
+  useEffect(() => {
+    if (diarioSearchTerm) {
+      const searchTerm = diarioSearchTerm.toLowerCase();
+      
+      // Verificar se o termo corresponde ao DOU
+      if (searchTerm.includes('diário oficial da união') || searchTerm.includes('dou')) {
+        setExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Federal': true
+        }));
+      }
+      // Verificar outros diários específicos se necessário
+      else if (searchTerm.includes('diário oficial sp') || searchTerm.includes('dosp')) {
+        setExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      else if (searchTerm.includes('diário oficial rj') || searchTerm.includes('dorj')) {
+        setExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      else if (searchTerm.includes('diário oficial mg') || searchTerm.includes('domg')) {
+        setExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      // Para outros poderes, expandir baseado no termo
+      else if (searchTerm.includes('judiciário') || searchTerm.includes('justiça')) {
+        setExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Judiciário': true
+        }));
+      }
+      else if (searchTerm.includes('legislativo') || searchTerm.includes('congresso')) {
+        setExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Legislativo': true
+        }));
+      }
+      else if (searchTerm.includes('ministério público') || searchTerm.includes('mp')) {
+        setExpandedPoderes(prev => ({
+          ...prev,
+          'Ministério Público': true
+        }));
+      }
+    } else {
+      // Limpar expansões quando o campo de busca estiver vazio
+      setExpandedPoderes({});
+      setExpandedSubcategorias({});
+    }
+  }, [diarioSearchTerm]);
+
   // Filtros para aba de monitoramentos
   const filteredMonitorDiariosPorPoder = getFilteredDiariosPorPoder(monitorDiarioSearchTerm);
 
+  // Auto-expandir categorias na aba Monitorar termos quando um diário específico é encontrado
+  useEffect(() => {
+    if (monitorDiarioSearchTerm) {
+      const searchTerm = monitorDiarioSearchTerm.toLowerCase();
+      
+      // Verificar se o termo corresponde ao DOU
+      if (searchTerm.includes('diário oficial da união') || searchTerm.includes('dou')) {
+        setMonitorExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setMonitorExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Federal': true
+        }));
+      }
+      // Verificar outros diários específicos se necessário
+      else if (searchTerm.includes('diário oficial sp') || searchTerm.includes('dosp')) {
+        setMonitorExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setMonitorExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      else if (searchTerm.includes('diário oficial rj') || searchTerm.includes('dorj')) {
+        setMonitorExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setMonitorExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      else if (searchTerm.includes('diário oficial mg') || searchTerm.includes('domg')) {
+        setMonitorExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setMonitorExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      // Para outros poderes, expandir baseado no termo
+      else if (searchTerm.includes('judiciário') || searchTerm.includes('justiça')) {
+        setMonitorExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Judiciário': true
+        }));
+      }
+      else if (searchTerm.includes('legislativo') || searchTerm.includes('congresso')) {
+        setMonitorExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Legislativo': true
+        }));
+      }
+      else if (searchTerm.includes('ministério público') || searchTerm.includes('mp')) {
+        setMonitorExpandedPoderes(prev => ({
+          ...prev,
+          'Ministério Público': true
+        }));
+      }
+    } else {
+      // Limpar expansões quando o campo de busca estiver vazio
+      setMonitorExpandedPoderes({});
+      setMonitorExpandedSubcategorias({});
+    }
+  }, [monitorDiarioSearchTerm]);
+
   // Filtros para aba Navegar
   const filteredNavegarDiariosPorPoder = getFilteredDiariosPorPoder(navegarDiarioSearchTerm);
+
+  // Auto-expandir categorias quando um diário específico é encontrado
+  useEffect(() => {
+    if (navegarDiarioSearchTerm) {
+      const searchTerm = navegarDiarioSearchTerm.toLowerCase();
+      
+      // Verificar se o termo corresponde ao DOU
+      if (searchTerm.includes('diário oficial da união') || searchTerm.includes('dou')) {
+        setNavegarExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setNavegarExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Federal': true
+        }));
+      }
+      // Verificar outros diários específicos se necessário
+      else if (searchTerm.includes('diário oficial sp') || searchTerm.includes('dosp')) {
+        setNavegarExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setNavegarExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      else if (searchTerm.includes('diário oficial rj') || searchTerm.includes('dorj')) {
+        setNavegarExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setNavegarExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      else if (searchTerm.includes('diário oficial mg') || searchTerm.includes('domg')) {
+        setNavegarExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Executivo': true
+        }));
+        setNavegarExpandedSubcategorias(prev => ({
+          ...prev,
+          'Poder Executivo-Estaduais': true
+        }));
+      }
+      // Para outros poderes, expandir baseado no termo
+      else if (searchTerm.includes('judiciário') || searchTerm.includes('justiça')) {
+        setNavegarExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Judiciário': true
+        }));
+      }
+      else if (searchTerm.includes('legislativo') || searchTerm.includes('congresso')) {
+        setNavegarExpandedPoderes(prev => ({
+          ...prev,
+          'Poder Legislativo': true
+        }));
+      }
+      else if (searchTerm.includes('ministério público') || searchTerm.includes('mp')) {
+        setNavegarExpandedPoderes(prev => ({
+          ...prev,
+          'Ministério Público': true
+        }));
+      }
+    } else {
+      // Limpar expansões quando o campo de busca estiver vazio
+      setNavegarExpandedPoderes({});
+      setNavegarExpandedSubcategorias({});
+    }
+  }, [navegarDiarioSearchTerm]);
 
   // Função para verificar se um diário tem múltiplas seções
   const hasMultipleSections = (diarioId: string) => {
@@ -1140,8 +1344,8 @@ export default function DiariosOficiais() {
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data inicial</label>
                                 <DatePicker
                                   selectedDate={customDateRange.start}
-                                  onChange={(date) => setCustomDateRange({...customDateRange, start: date || undefined})}
-                                  maxDate={new Date()}
+                                  onChange={handleStartDateChange}
+                                  maxDate={customDateRange.end || new Date()}
                                   placeholder="dd/mm/aaaa"
                                   className="w-full"
                                   forcePosition="above"
@@ -1152,7 +1356,8 @@ export default function DiariosOficiais() {
                                 <label className="block text-xs font-medium text-gray-400 mb-2">Data final</label>
                                 <DatePicker
                                   selectedDate={customDateRange.end}
-                                  onChange={(date) => setCustomDateRange({...customDateRange, end: date || undefined})}
+                                  onChange={handleEndDateChange}
+                                  minDate={customDateRange.start}
                                   maxDate={new Date()}
                                   placeholder="dd/mm/aaaa"
                                   className="w-full"
@@ -1160,8 +1365,18 @@ export default function DiariosOficiais() {
                                 />
                               </div>
                             </div>
+                            
+                            {/* Mensagem de erro de validação */}
+                            {dateValidationError && (
+                              <div className="mt-4 p-3 bg-red-600/10 border border-red-500/20 rounded-lg">
+                                <p className="text-sm text-red-300 text-center">
+                                  {dateValidationError}
+                                </p>
+                              </div>
+                            )}
+                            
                             {/* Exibição do período selecionado */}
-                            {customDateRange.start && customDateRange.end && (
+                            {customDateRange.start && customDateRange.end && !dateValidationError && (
                               <div className="mt-4 p-3 bg-blue-600/10 border border-blue-500/20 rounded-lg">
                                 <p className="text-sm text-blue-300 text-center">
                                   Período selecionado: {customDateRange.start.toLocaleDateString('pt-BR')} a {customDateRange.end.toLocaleDateString('pt-BR')}
@@ -1211,13 +1426,6 @@ export default function DiariosOficiais() {
                   <p className="text-sm text-gray-400 sm:text-base">Gerencie seus alertas de palavras-chave</p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleCreateContextMonitor}
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    Teste Contexto
-                  </button>
                   {monitoramentos.length > 0 && (
                   <button
                     onClick={() => {
@@ -1464,7 +1672,7 @@ export default function DiariosOficiais() {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
                               <h4 className="text-sm font-semibold text-white sm:text-base">
-                                {monitoramento.terms.join(', ')}
+                                {monitoramento.terms[0]}
                               </h4>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 monitoramento.isActive 
@@ -1491,7 +1699,7 @@ export default function DiariosOficiais() {
                                 setSelectedMonitor(monitoramento);
                                 openMonitorDrawer();
                               }}
-                              className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-cyan-600/10 rounded-lg transition-colors"
+                              className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-cyan-600/10 rounded-lg transition-colors cursor-pointer"
                               title="Ver histórico"
                             >
                               <EyeIcon className="h-4 w-4" />
@@ -1501,7 +1709,7 @@ export default function DiariosOficiais() {
                                 e.stopPropagation();
                                 handleEditMonitoramento(monitoramento.id);
                               }}
-                              className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 rounded-lg transition-colors"
+                              className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 rounded-lg transition-colors cursor-pointer"
                               title="Editar"
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1513,7 +1721,7 @@ export default function DiariosOficiais() {
                                 e.stopPropagation();
                                 handleToggleMonitoramento(monitoramento.id);
                               }}
-                              className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-600/10 rounded-lg transition-colors"
+                              className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-600/10 rounded-lg transition-colors cursor-pointer"
                               title={monitoramento.isActive ? 'Pausar' : 'Ativar'}
                             >
                               {monitoramento.isActive ? (
@@ -1531,7 +1739,7 @@ export default function DiariosOficiais() {
                                 e.stopPropagation();
                                 handleDeleteMonitoramento(monitoramento.id);
                               }}
-                              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-600/10 rounded-lg transition-colors"
+                              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-600/10 rounded-lg transition-colors cursor-pointer"
                               title="Excluir"
                             >
                               <TrashIcon className="h-4 w-4" />
@@ -1749,10 +1957,6 @@ export default function DiariosOficiais() {
                                 </span>
                                 {expandedSections['dou-today'] ? 'Ocultar seções' : 'Ver seções'}
                               </button>
-                              <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
-                                <EyeIcon className="h-3 w-3" />
-                                Visualizar
-                              </button>
                               {/* Botão "Baixar PDF" removido para diários com múltiplas seções */}
                               <div className="px-3 py-1.5 bg-amber-600/20 text-amber-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
                                 <span>ℹ️</span>
@@ -1885,10 +2089,6 @@ export default function DiariosOficiais() {
                                 </p>
                               </div>
                               <div className="flex gap-2">
-                                <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
-                                  <EyeIcon className="h-3 w-3" />
-                                  Visualizar
-                                </button>
                                 {/* Botão "Baixar PDF" removido para diários com múltiplas seções */}
                                 <div className="px-3 py-1.5 bg-amber-600/20 text-amber-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
                                   <span>ℹ️</span>
@@ -1962,6 +2162,9 @@ export default function DiariosOficiais() {
                   setShowDiarioDropdown(false);
                   setShowDateFilters(false);
                   setShowCustomDateRange(false);
+                  setHasSearched(false);
+                  // Scroll para o topo da página
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
               >
@@ -1970,64 +2173,109 @@ export default function DiariosOficiais() {
             </div>
             
             <div className="grid grid-cols-1 gap-4 sm:gap-6">
-              {searchResults.map((result) => (
-                <div
-                  key={result.id}
-                  className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 hover:shadow-lg"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h4 className="text-lg font-semibold text-white mb-2 line-clamp-2">
-                        {result.title}
-                      </h4>
-                      <div className="flex items-center gap-3 text-sm text-gray-400 mb-3">
-                        <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
-                          {result.source}
-                        </span>
-                        <span>{result.date}</span>
+              {searchResults.flatMap((result) => {
+                // Se o resultado tem seções, criar um resultado individual para cada seção
+                if (result.sections && result.sections.length > 0) {
+                  return result.sections.map((section) => (
+                    <div
+                      key={`${result.id}-${section.id}`}
+                      className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 hover:shadow-lg"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-white mb-2 line-clamp-2">
+                            {result.title}
+                          </h4>
+                          <div className="flex items-center gap-3 text-sm text-gray-400 mb-3">
+                            <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
+                              {result.source} - {section.name}
+                            </span>
+                            <span>{result.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                        {result.excerpt}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-2">
+                          <button className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer">
+                            <ArrowDownTrayIcon className="h-4 w-4" />
+                            PDF
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleSaveAsMonitor(result.title)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
+                            monitoredTerms.has(result.title)
+                              ? 'bg-green-600/30 text-green-200'
+                              : 'bg-green-600/20 text-green-300 hover:bg-green-600/30'
+                          }`}
+                        >
+                          {monitoredTerms.has(result.title) ? (
+                            <CheckIcon className="h-4 w-4" />
+                          ) : (
+                            <BellIcon className="h-4 w-4" />
+                          )}
+                          {monitoredTerms.has(result.title) && (
+                            <span className="text-xs">Termo monitorado</span>
+                          )}
+                        </button>
                       </div>
                     </div>
-                  </div>
-                  <p className="text-gray-300 text-sm mb-4 line-clamp-3">
-                    {result.excerpt}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedPublication(result);
-                          openDrawer();
-                        }}
-                        className="px-4 py-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                        Ver mais
-                      </button>
-                      <button className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer">
-                        <ArrowDownTrayIcon className="h-4 w-4" />
-                        PDF
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => handleSaveAsMonitor(result.title)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
-                        monitoredTerms.has(result.title)
-                          ? 'bg-green-600/30 text-green-200'
-                          : 'bg-green-600/20 text-green-300 hover:bg-green-600/30'
-                      }`}
+                  ));
+                } else {
+                  // Se não tem seções, renderizar como antes
+                  return (
+                    <div
+                      key={result.id}
+                      className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 hover:shadow-lg"
                     >
-                      {monitoredTerms.has(result.title) ? (
-                        <CheckIcon className="h-4 w-4" />
-                      ) : (
-                        <BellIcon className="h-4 w-4" />
-                      )}
-                      {monitoredTerms.has(result.title) && (
-                        <span className="text-xs">Termo monitorado</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-white mb-2 line-clamp-2">
+                            {result.title}
+                          </h4>
+                          <div className="flex items-center gap-3 text-sm text-gray-400 mb-3">
+                            <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
+                              {result.source}
+                            </span>
+                            <span>{result.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                        {result.excerpt}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-2">
+                          <button className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer">
+                            <ArrowDownTrayIcon className="h-4 w-4" />
+                            PDF
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleSaveAsMonitor(result.title)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
+                            monitoredTerms.has(result.title)
+                              ? 'bg-green-600/30 text-green-200'
+                              : 'bg-green-600/20 text-green-300 hover:bg-green-600/30'
+                          }`}
+                        >
+                          {monitoredTerms.has(result.title) ? (
+                            <CheckIcon className="h-4 w-4" />
+                          ) : (
+                            <BellIcon className="h-4 w-4" />
+                          )}
+                          {monitoredTerms.has(result.title) && (
+                            <span className="text-xs">Termo monitorado</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+              })}
             </div>
           </div>
         </div>
@@ -2127,7 +2375,7 @@ export default function DiariosOficiais() {
                   <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                     <div className="flex items-center gap-3 mb-3">
                       <h4 className="text-lg font-semibold text-white">
-                        {selectedMonitor.terms.join(', ')}
+                        {selectedMonitor.terms[0]}
                       </h4>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         selectedMonitor.isActive 
@@ -2175,11 +2423,7 @@ export default function DiariosOficiais() {
                           A Secretaria de Educação torna público o edital de concurso público para provimento de vagas...
                         </p>
                         <div className="flex gap-2">
-                          <button className="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
-                            <EyeIcon className="h-3 w-3" />
-                            Visualizar
-                          </button>
-                          <button className="px-3 py-1.5 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5">
+                          <button className="px-3 py-1.5 bg-white/10 text-white hover:bg-white/20 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
                             <ArrowDownTrayIcon className="h-3 w-3" />
                             PDF
                           </button>

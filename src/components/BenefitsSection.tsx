@@ -101,7 +101,7 @@ export default function BenefitsSection() {
   return (
     <section id="features" className="relative z-0 bg-transparent">
       <div className="py-16 sm:py-24 lg:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 relative overflow-hidden">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 relative">
           <RevealWrapper delay={0}>
             <header className="mb-12 text-center">
               <h1 className="text-xl font-bold leading-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 sm:text-2xl lg:text-3xl" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Benefícios</h1>
@@ -144,7 +144,7 @@ export default function BenefitsSection() {
                       return (
                         <motion.button
                           key={item.id}
-                          whileHover={{ scale: 1.02 }}
+                          whileHover={{}}
                           onClick={() => setActiveId(item.id)}
                     className={`
                       flex items-center gap-3 rounded-xl border px-4 py-4 transition-all duration-200
