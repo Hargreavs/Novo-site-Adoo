@@ -45,6 +45,20 @@ export default function DiariosOficiais() {
   
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
   const [selectedDiarios, setSelectedDiarios] = useState<string[]>([]);
+  
+  // Estados para busca na subaba monitorar
+  const [monitorSearchInput, setMonitorSearchInput] = useState('');
+  const [monitorSearchTerms, setMonitorSearchTerms] = useState<string[]>([]);
+  const [monitorSelectedDiarios, setMonitorSelectedDiarios] = useState<string[]>([]);
+  
+  // Estados para o combobox da subaba monitorar
+  const [monitorSuggestions, setMonitorSuggestions] = useState<SearchConfig[]>([]);
+  const [monitorShowSuggestions, setMonitorShowSuggestions] = useState(false);
+  const [monitorSelectedIndex, setMonitorSelectedIndex] = useState(-1);
+  const [monitorDebounceTimer, setMonitorDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [monitorSearchHistory, setMonitorSearchHistory] = useState<SearchConfig[]>([]);
+  const [monitorIsShowingHistory, setMonitorIsShowingHistory] = useState(false);
+  const monitorSearchInputRef = useRef<HTMLInputElement | null>(null);
   const [searchPeriod, setSearchPeriod] = useState('7d');
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState({ start: undefined as Date | undefined, end: undefined as Date | undefined });
@@ -109,6 +123,62 @@ export default function DiariosOficiais() {
     }
   }, []);
 
+  // Carregar histórico de monitoramento do localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedMonitorHistory = localStorage.getItem('monitorSearchHistory');
+      if (savedMonitorHistory) {
+        try {
+          const parsedHistory = JSON.parse(savedMonitorHistory);
+          // Garantir que seja um array de SearchConfig válidos
+          const validHistory = Array.isArray(parsedHistory) 
+            ? parsedHistory.filter(item => 
+                item && 
+                typeof item === 'object' && 
+                typeof item.term === 'string' &&
+                Array.isArray(item.selectedDiarios) &&
+                typeof item.searchPeriod === 'string' &&
+                typeof item.timestamp === 'number'
+              )
+            : [];
+          setMonitorSearchHistory(validHistory);
+        } catch (error) {
+          console.error('Erro ao carregar histórico de monitoramento:', error);
+          setMonitorSearchHistory([]);
+        }
+      } else {
+        // Dados de exemplo para teste
+        const exampleHistory: SearchConfig[] = [
+          {
+            id: 'monitor-example-1',
+            term: 'João da Silva',
+            selectedDiarios: ['dou'],
+            searchPeriod: '7d',
+            customDateRange: undefined,
+            timestamp: Date.now() - 86400000 // 1 dia atrás
+          },
+          {
+            id: 'monitor-example-2',
+            term: 'Maria Santos',
+            selectedDiarios: ['dou', 'dom'],
+            searchPeriod: '7d',
+            customDateRange: undefined,
+            timestamp: Date.now() - 172800000 // 2 dias atrás
+          },
+          {
+            id: 'monitor-example-3',
+            term: 'Pedro Oliveira',
+            selectedDiarios: ['dou'],
+            searchPeriod: '7d',
+            customDateRange: undefined,
+            timestamp: Date.now() - 259200000 // 3 dias atrás
+          }
+        ];
+        setMonitorSearchHistory(exampleHistory);
+      }
+    }
+  }, []);
+
   // Cleanup do timer do debounce
   useEffect(() => {
     return () => {
@@ -148,6 +218,9 @@ export default function DiariosOficiais() {
     }
   ]);
 
+  // Estados para edição de monitoramento
+  const [isEditingMonitor, setIsEditingMonitor] = useState(false);
+  const [editingMonitorId, setEditingMonitorId] = useState<number | null>(null);
 
   const [monitoredTerms, setMonitoredTerms] = useState<Set<string>>(new Set());
   const [selectedDiario, setSelectedDiario] = useState('');
@@ -466,6 +539,351 @@ export default function DiariosOficiais() {
     } else {
       setSearchInput(newTerms.join(', '));
     }
+  };
+
+  // Funções para busca na subaba monitorar
+  const filterMonitorSuggestions = (term: string) => {
+    // Filtrar apenas histórico baseado em correspondência sequencial de caracteres
+    const filtered = monitorSearchHistory.filter(suggestion => {
+      const suggestionLower = suggestion.term.toLowerCase();
+      const termLower = term.toLowerCase();
+      
+      // Verificar se o termo digitado corresponde sequencialmente ao início da sugestão
+      return suggestionLower.startsWith(termLower);
+    }).slice(0, 5); // Limitar a 5 sugestões
+
+    setMonitorSuggestions(filtered);
+    setMonitorShowSuggestions(filtered.length > 0);
+    setMonitorIsShowingHistory(true);
+    setMonitorSelectedIndex(-1);
+  };
+
+  const handleMonitorSearchInputChange = (value: string) => {
+    setMonitorSearchInput(value);
+    
+    // Limpar timer anterior
+    if (monitorDebounceTimer) {
+      clearTimeout(monitorDebounceTimer);
+    }
+
+    // Se campo está vazio, mostrar histórico imediatamente
+    if (!value.trim()) {
+      filterMonitorSuggestions(value);
+      setMonitorSearchTerms([]);
+      return;
+    }
+
+    // Filtrar sugestões com debounce
+    const timer = setTimeout(() => {
+      filterMonitorSuggestions(value);
+    }, 300);
+    setMonitorDebounceTimer(timer);
+
+    // Processar termos automaticamente durante a digitação
+    const terms = value.split(',').map(t => t.trim()).filter(t => t);
+    setMonitorSearchTerms(terms);
+    
+    // Se há termos, expandir automaticamente o Poder Executivo > Federal > DOU
+    if (terms.length > 0) {
+      setMonitorExpandedPoderes(prev => ({
+        ...prev,
+        'Poder Executivo': true
+      }));
+      setMonitorExpandedSubcategorias(prev => ({
+        ...prev,
+        'Poder Executivo-Federal': true
+      }));
+    }
+  };
+
+  const handleMonitorKeyDown = (e: React.KeyboardEvent) => {
+    if (!monitorShowSuggestions || monitorSuggestions.length === 0) {
+      if (e.key === 'Enter' && monitorSearchInput.trim()) {
+        e.preventDefault();
+        // Não precisa fazer nada aqui, pois o reconhecimento já é automático
+        // Apenas limpar o input se necessário
+        setMonitorSearchInput('');
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setMonitorSelectedIndex(prev => 
+          prev < monitorSuggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setMonitorSelectedIndex(prev => 
+          prev > 0 ? prev - 1 : monitorSuggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (monitorSelectedIndex >= 0 && monitorSelectedIndex < monitorSuggestions.length) {
+          const selectedSuggestion = monitorSuggestions[monitorSelectedIndex];
+          handleMonitorSuggestionSelect(selectedSuggestion);
+        } else if (monitorSearchInput.trim()) {
+          setMonitorSearchInput('');
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setMonitorShowSuggestions(false);
+        setMonitorIsShowingHistory(false);
+        setMonitorSelectedIndex(-1);
+        break;
+    }
+  };
+
+  const handleRemoveMonitorSearchTerm = (index: number) => {
+    const newTerms = monitorSearchTerms.filter((_, i) => i !== index);
+    setMonitorSearchTerms(newTerms);
+    
+    // Atualizar o input com os termos restantes
+    if (newTerms.length === 0) {
+      setMonitorSearchInput('');
+      setMonitorSelectedDiarios([]); // Limpar diários quando não há mais termos
+    } else {
+      setMonitorSearchInput(newTerms.join(', '));
+    }
+  };
+
+  // Funções para manipular sugestões do combobox da subaba monitorar
+  const handleMonitorSuggestionSelect = (suggestion: SearchConfig) => {
+    setMonitorSearchInput(suggestion.term);
+    setMonitorShowSuggestions(false);
+    setMonitorIsShowingHistory(false);
+    setMonitorSelectedIndex(-1);
+    
+    // Processar como termo de busca
+    const terms = suggestion.term.split(',').map(t => t.trim()).filter(t => t);
+    setMonitorSearchTerms(terms);
+    
+    // Expandir automaticamente o Poder Executivo > Federal > DOU
+    if (terms.length > 0) {
+      setMonitorExpandedPoderes(prev => ({
+        ...prev,
+        'Poder Executivo': true
+      }));
+      setMonitorExpandedSubcategorias(prev => ({
+        ...prev,
+        'Poder Executivo-Federal': true
+      }));
+    }
+  };
+
+  const handleMonitorSuggestionClick = (suggestion: SearchConfig) => {
+    handleMonitorSuggestionSelect(suggestion);
+  };
+
+  // Handler para quando o input recebe foco
+  const handleMonitorInputFocus = () => {
+    if (!monitorSearchInput.trim() && monitorSearchHistory.length > 0) {
+      setMonitorSuggestions(monitorSearchHistory.slice(0, 8));
+      setMonitorShowSuggestions(monitorSearchHistory.length > 0);
+      setMonitorIsShowingHistory(true);
+      setMonitorSelectedIndex(-1);
+    }
+  };
+
+  // Handler para quando o input perde foco
+  const handleMonitorInputBlur = () => {
+    // Delay para permitir clique nas sugestões
+    setTimeout(() => {
+      setMonitorShowSuggestions(false);
+      setMonitorIsShowingHistory(false);
+      setMonitorSelectedIndex(-1);
+    }, 150);
+  };
+
+  // Funções de toggle para poderes e subcategorias da subaba monitorar
+  const toggleMonitorPoder = (poder: string) => {
+    setMonitorExpandedPoderes(prev => ({
+      ...prev,
+      [poder]: !prev[poder]
+    }));
+  };
+
+  const toggleMonitorSubcategoria = (poder: string, subcategoria: string) => {
+    const key = `${poder}-${subcategoria}`;
+    setMonitorExpandedSubcategorias(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Função para criar alerta de monitoramento com validação
+  const handleCreateMonitorAlert = async () => {
+    // Verificar se há termos digitados
+    if (monitorSearchTerms.length === 0) {
+      showToastMessage('Digite pelo menos um termo para monitorar');
+      return;
+    }
+
+    // Verificar se há diários selecionados
+    if (monitorSelectedDiarios.length === 0) {
+      // Scroll para a seção de diários
+      const diariosSection = document.querySelector('[data-section="monitor-diarios"]');
+      if (diariosSection) {
+        diariosSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Adicionar spotlight effect
+        setTimeout(() => {
+          diariosSection.classList.add('spotlight-border');
+          setTimeout(() => {
+            diariosSection.classList.remove('spotlight-border');
+          }, 3000);
+        }, 200);
+      }
+      
+      // Mostrar toast
+      showToastMessage('Selecione pelo menos um diário oficial');
+      return;
+    }
+
+    // Se todas as validações passaram, criar o monitoramento
+    const newMonitoramento = {
+      id: Date.now(),
+      terms: monitorSearchTerms,
+      diarios: monitorSelectedDiarios,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      occurrences: 0
+    };
+
+    setMonitoramentos(prev => [...prev, newMonitoramento]);
+    
+    // Salvar no histórico de monitoramento
+    const monitorConfig: SearchConfig = {
+      id: `monitor-${Date.now()}`,
+      term: monitorSearchTerms.join(', '),
+      selectedDiarios: monitorSelectedDiarios,
+      searchPeriod: '7d', // Padrão para monitoramento
+      customDateRange: undefined,
+      timestamp: Date.now()
+    };
+    
+    setMonitorSearchHistory(prev => {
+      const filtered = prev.filter(item => item.term !== monitorConfig.term);
+      const newHistory = [monitorConfig, ...filtered].slice(0, 10); // Manter apenas 10 itens
+      
+      // Salvar no localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('monitorSearchHistory', JSON.stringify(newHistory));
+      }
+      
+      return newHistory;
+    });
+    
+    // Limpar formulário
+    setMonitorSearchInput('');
+    setMonitorSearchTerms([]);
+    setMonitorSelectedDiarios([]);
+    
+    showToastMessage('Alerta de monitoramento criado com sucesso!');
+  };
+
+  // Função para iniciar edição de monitoramento
+  const handleEditMonitor = (monitoramento: any) => {
+    setIsEditingMonitor(true);
+    setEditingMonitorId(monitoramento.id);
+    setMonitorSearchInput(monitoramento.terms[0]);
+    setMonitorSearchTerms(monitoramento.terms);
+    setMonitorSelectedDiarios(monitoramento.diarios);
+    
+    // Expandir automaticamente os poderes selecionados
+    const expandedPoderes: {[key: string]: boolean} = {};
+    const expandedSubcategorias: {[key: string]: boolean} = {};
+    
+    monitoramento.diarios.forEach((diarioId: string) => {
+      const diario = diarios.find(d => d.id === diarioId);
+      if (diario) {
+        expandedPoderes[diario.poder] = true;
+        // Verificar se o diário tem subcategoria (alguns diários como MP e DP não têm)
+        if ('subcategoria' in diario && diario.subcategoria) {
+          expandedSubcategorias[`${diario.poder}-${diario.subcategoria}`] = true;
+        }
+      }
+    });
+    
+    setMonitorExpandedPoderes(expandedPoderes);
+    setMonitorExpandedSubcategorias(expandedSubcategorias);
+  };
+
+  // Função para cancelar edição de monitoramento
+  const handleCancelMonitorEdit = () => {
+    setIsEditingMonitor(false);
+    setEditingMonitorId(null);
+    setMonitorSearchInput('');
+    setMonitorSearchTerms([]);
+    setMonitorSelectedDiarios([]);
+    setMonitorExpandedPoderes({});
+    setMonitorExpandedSubcategorias({});
+  };
+
+  // Função para atualizar alerta de monitoramento
+  const handleUpdateMonitorAlert = async () => {
+    // Verificar se há termos digitados
+    if (monitorSearchTerms.length === 0) {
+      showToastMessage('Digite pelo menos um termo para monitorar');
+      return;
+    }
+
+    // Verificar se há diários selecionados
+    if (monitorSelectedDiarios.length === 0) {
+      const diariosSection = document.querySelector('[data-section="monitor-diarios"]');
+      if (diariosSection) {
+        diariosSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          diariosSection.classList.add('spotlight-border');
+          setTimeout(() => {
+            diariosSection.classList.remove('spotlight-border');
+          }, 3000);
+        }, 200);
+      }
+      showToastMessage('Selecione pelo menos um diário oficial');
+      return;
+    }
+
+    // Atualizar o monitoramento
+    setMonitoramentos(prev => prev.map(monitoramento => 
+      monitoramento.id === editingMonitorId 
+        ? {
+            ...monitoramento,
+            terms: monitorSearchTerms,
+            diarios: monitorSelectedDiarios
+          }
+        : monitoramento
+    ));
+
+    // Salvar no histórico
+    const monitorConfig: SearchConfig = {
+      id: `monitor-${Date.now()}`,
+      term: monitorSearchTerms[0],
+      selectedDiarios: monitorSelectedDiarios,
+      searchPeriod: '7d',
+      customDateRange: undefined,
+      timestamp: Date.now()
+    };
+    
+    setMonitorSearchHistory(prev => {
+      const filtered = prev.filter(item => item.term !== monitorConfig.term);
+      const newHistory = [monitorConfig, ...filtered].slice(0, 10);
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('monitorSearchHistory', JSON.stringify(newHistory));
+      }
+      
+      return newHistory;
+    });
+
+    // Limpar formulário e sair do modo de edição
+    handleCancelMonitorEdit();
+    
+    showToastMessage('Alerta de monitoramento atualizado com sucesso!');
   };
 
   const handleDiarioSelect = (diarioId: string) => {
@@ -1369,27 +1787,6 @@ export default function DiariosOficiais() {
     }
   };
 
-  const handleMonitorInputBlur = () => {
-    // Processa termos quando o usuário sai do campo
-    if (monitorTermInput.trim().length >= 2) {
-      processAndAddTerms(monitorTermInput);
-    }
-    
-    // Limpa timeout se existir
-    if (inputTimeout) {
-      clearTimeout(inputTimeout);
-      setInputTimeout(null);
-    }
-  };
-
-  const handleMonitorInputFocus = () => {
-    // Limpa timeout quando o usuário volta ao campo
-    if (inputTimeout) {
-      clearTimeout(inputTimeout);
-      setInputTimeout(null);
-    }
-  };
-
   return (
     <div className="bg-transparent min-h-screen">
       <TransparentHeader 
@@ -1826,32 +2223,309 @@ export default function DiariosOficiais() {
           {/* Monitorar Tab */}
           {activeTab === 'monitorar' && (
             <div className="space-y-6 fade-in">
-              {/* Header com botão de alerta rápido */}
-              <div className="flex items-center justify-between">
+              {/* Container de busca para monitoramentos */}
+              <div className="space-y-4 sm:space-y-6">
+                {/* Header */}
                 <div>
                   <h3 className="text-base font-semibold text-white sm:text-lg">Monitoramentos</h3>
-                  <p className="text-sm text-gray-400 sm:text-base">Gerencie seus alertas de palavras-chave</p>
+                  <p className="text-sm text-gray-400 sm:text-base">Digite o termo que deseja monitorar nos diários oficiais</p>
                 </div>
-                <div className="flex gap-2">
-                  {monitoramentos.length > 0 && (
-                  <button
-                    onClick={() => {
-                      setShowCreateForm(true);
-                      setMonitorTerm('');
-                      setMonitorDiarios([]);
-                      setMonitorTermInput('');
-                      setValidationError('');
-                      setEditingMonitor(null);
-                    }}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <PlusIcon className="h-3 w-3" />
-                    <span className="hidden sm:inline">Adicionar novo alerta</span>
-                    <span className="sm:hidden">Adicionar</span>
-                  </button>
+
+                {/* Campo de busca principal */}
+                <div className="input-with-icon relative">
+                  <MagnifyingGlassIcon className="input-icon h-5 w-5 text-gray-400" />
+                  <input
+                    ref={monitorSearchInputRef}
+                    type="text"
+                    value={monitorSearchInput}
+                    onChange={(e) => handleMonitorSearchInputChange(e.target.value)}
+                    onKeyDown={handleMonitorKeyDown}
+                    onFocus={handleMonitorInputFocus}
+                    onBlur={handleMonitorInputBlur}
+                    placeholder="Ex:. João da Silva"
+                    className="input-standard text-base font-medium pr-10"
+                  />
+                  {monitorSearchInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMonitorSearchInput('');
+                        setMonitorSearchTerms([]);
+                        setMonitorSelectedDiarios([]); // Limpar diários selecionados
+                      }}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
+
+                {/* Componente de Autocomplete */}
+                <AutocompletePortal
+                  anchorRef={monitorSearchInputRef as React.RefObject<HTMLElement>}
+                  open={monitorShowSuggestions}
+                  items={monitorSuggestions.map((suggestion, index) => ({
+                    id: suggestion.id,
+                    text: suggestion.term
+                  }))}
+                  onSelect={(item) => {
+                    const selectedSuggestion = monitorSuggestions.find(s => s.id === item.id);
+                    if (selectedSuggestion) {
+                      handleMonitorSuggestionClick(selectedSuggestion);
+                    }
+                  }}
+                  onClose={() => {
+                    setMonitorShowSuggestions(false);
+                    setMonitorIsShowingHistory(false);
+                    setMonitorSelectedIndex(-1);
+                  }}
+                  renderItem={(item, index, isSelected) => {
+                    const suggestion = monitorSuggestions.find(s => s.id === item.id);
+                    const isFromHistory = suggestion?.timestamp && suggestion.timestamp > 0;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        className={`w-full px-3 py-2 text-left text-white transition-all duration-200 flex items-center gap-2 first:rounded-t-2xl last:rounded-b-2xl ${
+                          isSelected 
+                            ? 'bg-blue-500/30 border-l-2 border-blue-400' 
+                            : 'hover:bg-blue-500/20'
+                        }`}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        <svg className="h-3 w-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div 
+                          className="flex-1 cursor-pointer"
+                          onClick={() => {
+                            if (suggestion) {
+                              handleMonitorSuggestionClick(suggestion);
+                            }
+                          }}
+                        >
+                          <span className="block text-sm">{item.text}</span>
+                        </div>
+                        {isFromHistory && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Função para remover do histórico de monitoramento
+                              setMonitorSearchHistory(prev => {
+                                const filtered = prev.filter(item => item.id !== suggestion.id);
+                                if (typeof window !== 'undefined') {
+                                  localStorage.setItem('monitorSearchHistory', JSON.stringify(filtered));
+                                }
+                                return filtered;
+                              });
+                            }}
+                            className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer p-0.5"
+                          >
+                            <XMarkIcon className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+
+                {/* Chips de Termos e Diários */}
+                {(monitorSearchTerms.length > 0 || monitorSelectedDiarios.length > 0) && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Termos de busca */}
+                    {monitorSearchTerms.map((term, index) => (
+                      <span
+                        key={`term-${index}`}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 rounded-full border border-blue-500/30 text-sm"
+                      >
+                        <span>🔍</span>
+                        <span>{term}</span>
+                        <button
+                          onClick={() => handleRemoveMonitorSearchTerm(index)}
+                          className="ml-1 text-blue-400 hover:text-blue-200 transition-colors cursor-pointer"
+                        >
+                          <XMarkIcon className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    
+                    
+                    {/* Diários selecionados */}
+                    {monitorSelectedDiarios.map((diarioId, index) => {
+                      const diario = diarios.find(d => d.id === diarioId);
+                      return (
+                        <span
+                          key={`diario-${index}`}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-green-600/20 text-green-300 rounded-full border border-green-500/30 text-sm"
+                        >
+                          <span>📰</span>
+                          <span>{diario ? diario.name : diarioId}</span>
+                          <button
+                            onClick={() => {
+                              setMonitorSelectedDiarios(prev => prev.filter(id => id !== diarioId));
+                            }}
+                            className="ml-1 text-green-400 hover:text-green-200 transition-colors cursor-pointer"
+                          >
+                            <XMarkIcon className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Seleção de Diários Oficiais */}
+                {monitorSearchTerms.length > 0 && (
+                  <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-4">
+                        Selecione os diários oficiais
+                      </label>
+                      
+                      {/* Dropdown com busca */}
+                      <div data-section="monitor-diarios" className="bg-white/5 border border-white/20 rounded-xl p-4 sm:p-6">
+                        {/* Busca global */}
+                        <div className="mb-6">
+                          <div className="input-with-icon">
+                            <MagnifyingGlassIcon className="input-icon h-4 w-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Buscar diários..."
+                              className="input-standard text-sm w-full"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Lista de diários com expansão/colapso */}
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                          {Object.entries(diariosPorPoder).map(([poder, subcategorias]) => {
+                            const totalDiarios = Array.isArray(subcategorias) 
+                              ? subcategorias.length 
+                              : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                            
+                            return (
+                              <div key={poder}>
+                                <button
+                                  onClick={() => toggleMonitorPoder(poder)}
+                                  className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                >
+                                  <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
+                                  <span className="transform transition-transform duration-200 text-blue-400">
+                                    {monitorExpandedPoderes[poder] ? '−' : '+'}
+                                  </span>
+                                </button>
+                                
+                                {monitorExpandedPoderes[poder] && (
+                                  <div className="ml-4 space-y-3 mt-2">
+                                    {Array.isArray(subcategorias) ? (
+                                      // Para MP e DP (arrays diretos)
+                                      <div className="space-y-2">
+                                        {subcategorias.map((diario) => (
+                                          <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                            <input
+                                              type="checkbox"
+                                              checked={monitorSelectedDiarios.includes(diario.id)}
+                                              onChange={() => {
+                                                if (monitorSelectedDiarios.includes(diario.id)) {
+                                                  setMonitorSelectedDiarios(prev => prev.filter(id => id !== diario.id));
+                                                } else {
+                                                  setMonitorSelectedDiarios(prev => [...prev, diario.id]);
+                                                }
+                                              }}
+                                              className="w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                            />
+                                            <span className="flex-1">{diario.name}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      // Para poderes com subcategorias
+                                      Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
+                                        <div key={subcategoria}>
+                                          <button
+                                            onClick={() => toggleMonitorSubcategoria(poder, subcategoria)}
+                                            className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                          >
+                                            <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
+                                            <span className="transform transition-transform duration-200 text-blue-400">
+                                              {monitorExpandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
+                                            </span>
+                                          </button>
+                                          
+                                          {monitorExpandedSubcategorias[`${poder}-${subcategoria}`] && (
+                                            <div className="ml-4 space-y-2 mt-2">
+                                              {diariosList.map((diario) => (
+                                                <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={monitorSelectedDiarios.includes(diario.id)}
+                                                    onChange={() => {
+                                                      if (monitorSelectedDiarios.includes(diario.id)) {
+                                                        setMonitorSelectedDiarios(prev => prev.filter(id => id !== diario.id));
+                                                      } else {
+                                                        setMonitorSelectedDiarios(prev => [...prev, diario.id]);
+                                                      }
+                                                    }}
+                                                    className="w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                                  />
+                                                  <span className="flex-1">{diario.name}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botões de Ação */}
+                    <div className="pt-4">
+                      {isEditingMonitor ? (
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleUpdateMonitorAlert}
+                            disabled={monitorSearchTerms.length === 0 || monitorSelectedDiarios.length === 0}
+                            className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-white rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 text-base shadow-lg hover:shadow-xl disabled:shadow-none"
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Atualizar alerta de monitoramento
+                          </button>
+                          <button
+                            onClick={handleCancelMonitorEdit}
+                            className="px-6 py-3 bg-gray-600 hover:bg-gray-500 cursor-pointer text-white rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 text-base shadow-lg hover:shadow-xl"
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleCreateMonitorAlert}
+                          disabled={monitorSearchTerms.length === 0 || monitorSelectedDiarios.length === 0}
+                          className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-white rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 text-base shadow-lg hover:shadow-xl disabled:shadow-none"
+                        >
+                          <BellIcon className="h-5 w-5" />
+                          Criar alerta de monitoramento
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
+
 
               {/* Formulário de criação rápida */}
               {(showCreateForm || monitorTerm || monitorDiarios.length > 0 || monitorTermInput || editingMonitor !== null) && (
@@ -2088,9 +2762,6 @@ export default function DiariosOficiais() {
                               }`}>
                                 {monitoramento.isActive ? 'Ativo' : 'Pausado'}
                               </span>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30">
-                                Diária
-                              </span>
                             </div>
                             <p className="text-gray-400 text-sm mb-2">
                               <span className="font-medium">Diários:</span> {diariosNames.join(', ')}
@@ -2114,7 +2785,7 @@ export default function DiariosOficiais() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleEditMonitoramento(monitoramento.id);
+                                handleEditMonitor(monitoramento);
                               }}
                               className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 rounded-lg transition-colors cursor-pointer"
                               title="Editar"

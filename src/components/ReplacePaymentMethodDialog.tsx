@@ -95,6 +95,17 @@ export default function ReplacePaymentMethodDialog({
       />
       
       <div className="relative bg-gradient-to-br from-gray-900/98 to-gray-800/95 backdrop-blur-xl border border-white/20 rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* Botão de fechar */}
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 z-10"
+          aria-label="Fechar modal"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         {/* Header com ícone e gradiente */}
         <div className="flex items-start gap-4 mb-6">
           <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-2xl flex items-center justify-center ring-1 ring-blue-500/20">
@@ -146,7 +157,7 @@ export default function ReplacePaymentMethodDialog({
               <BrandBadge brand={cardToRemove.brand} />
               <div className="flex-1">
                 <div className="text-white font-semibold text-base">
-                  {BRAND[cardToRemove.brand].label} •••• {cardToRemove.last4}
+                  {BRAND[cardToRemove.brand]?.label || 'Cartão'} •••• {cardToRemove.last4}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   Expira em {cardToRemove.expiry}

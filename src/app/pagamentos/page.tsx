@@ -1948,7 +1948,7 @@ export default function Pagamentos() {
           setCardToRemove(null);
         }}
         onConfirm={handleConfirmRemove}
-        title={`Remover cartão ${cardToRemove ? BRAND[cardToRemove.brand].label : ''} •••• ${cardToRemove?.last4}?`}
+        title={`Remover cartão ${cardToRemove ? (BRAND[cardToRemove.brand]?.label || 'Cartão') : ''} •••• ${cardToRemove?.last4}?`}
         description="Este cartão não está vinculado a nenhuma assinatura."
         confirmLabel="Remover"
         confirmTone="danger"
