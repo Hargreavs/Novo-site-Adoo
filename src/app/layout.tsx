@@ -4,6 +4,8 @@ import "./globals.css";
 import HydrationFix from "@/components/HydrationFix";
 import BodyWrapper from "@/components/BodyWrapper";
 import Footer from "@/components/Footer";
+import { AuthProvider } from "@/contexts/AuthContext";
+import AuthStateProvider from "@/components/AuthStateProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,10 +32,14 @@ export default function RootLayout({
         className={`${inter.variable} antialiased`}
         suppressHydrationWarning={true}
       >
-        <HydrationFix />
-        <BodyWrapper />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <AuthStateProvider>
+            <HydrationFix />
+            <BodyWrapper />
+            {children}
+            <Footer />
+          </AuthStateProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -101,24 +101,24 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
         <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700/50 rounded-2xl p-8 shadow-2xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <EciooLogo className="h-8 w-24" />
-              <h2 className="text-xl font-bold text-white">Contatar Vendas</h2>
+              <h2 className="text-2xl font-bold text-white">Contatar Vendas</h2>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors duration-200 p-1 rounded-lg hover:bg-gray-800/50"
+              className="text-gray-400 hover:text-white transition-colors duration-200 p-2 rounded-lg hover:bg-gray-800/50 cursor-pointer"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-white mb-3">
                 Nome Completo
               </label>
               <input
@@ -128,13 +128,13 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
                 value={formData.name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+                className="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm hover:border-gray-500/50"
                 placeholder="Seu nome completo"
               />
             </div>
             
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-white mb-3">
                 E-mail
               </label>
               <input
@@ -144,13 +144,13 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+                className="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm hover:border-gray-500/50"
                 placeholder="seu@email.com"
               />
             </div>
 
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="company" className="block text-sm font-medium text-white mb-3">
                 Nome da Empresa
               </label>
               <input
@@ -160,13 +160,13 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
                 value={formData.company}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+                className="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm hover:border-gray-500/50"
                 placeholder="Nome da sua empresa"
               />
             </div>
             
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="message" className="block text-sm font-medium text-white mb-3">
                 Como podemos ajudar?
               </label>
               <textarea
@@ -174,25 +174,25 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
                 name="message"
                 value={formData.message}
                 onChange={handleInputChange}
-                rows={3}
+                rows={4}
                 required
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none text-sm"
+                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none text-sm hover:border-gray-500/50"
                 placeholder="Conte-nos sobre suas necessidades, solicite uma reunião ou tire suas dúvidas sobre o plano empresarial..."
               />
             </div>
             
-            <div className="flex gap-3 pt-6">
+            <div className="flex gap-4 pt-8">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 text-gray-300 border border-gray-600 rounded-lg hover:text-white hover:border-gray-400 transition-all duration-200 text-sm"
+                className="flex-1 px-6 py-3 text-gray-300 bg-gray-800/50 border border-gray-600/50 rounded-lg hover:text-white hover:bg-gray-700/50 hover:border-gray-500/50 transition-all duration-200 text-sm font-medium cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium cursor-pointer"
               >
                 {isSubmitting ? 'Enviando...' : 'Enviar Mensagem'}
               </button>

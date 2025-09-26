@@ -26,6 +26,7 @@ export default function Home() {
   const [isHeroVisible, setIsHeroVisible] = useState(true);
   const [trialForm, setTrialForm] = useState({ name: '', email: '' });
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [isAnnualPricing, setIsAnnualPricing] = useState(true);
   const [isContactSalesModalOpen, setIsContactSalesModalOpen] = useState(false);
   
   // Estados para busca
@@ -57,6 +58,12 @@ export default function Home() {
   const handlePricingTrialSubmit = () => {
     console.log('Pricing button clicked - opening modal with pre-filled data');
     setIsTestModalOpen(true);
+  };
+
+  const handleTestModalClose = () => {
+    setIsTestModalOpen(false);
+    // Limpar dados do formulário de preços quando o modal for fechado
+    setTrialForm({ name: '', email: '' });
   };
 
   // Cleanup do timer
@@ -1259,6 +1266,30 @@ export default function Home() {
               <p className="mt-3 mb-8 text-xl font-bold tracking-tight text-white sm:text-2xl lg:text-3xl">
                 Experimente antes de você pagar
               </p>
+              
+              {/* Toggle de Preços Mensal/Anual */}
+              <div className="flex items-center justify-center mb-8">
+                <div className="flex items-center space-x-4">
+                  <span className={`text-sm font-medium transition-colors duration-200 ${!isAnnualPricing ? 'text-white' : 'text-gray-400'}`}>
+                    Mensal
+                  </span>
+           <button
+             onClick={() => setIsAnnualPricing(!isAnnualPricing)}
+             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 cursor-pointer ${
+               isAnnualPricing ? 'bg-blue-500' : 'bg-gray-600'
+             }`}
+           >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                        isAnnualPricing ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className={`text-sm font-medium transition-colors duration-200 ${isAnnualPricing ? 'text-white' : 'text-gray-400'}`}>
+                    Anual
+                  </span>
+                </div>
+              </div>
             </div>
           </RevealWrapper>
           
@@ -1307,19 +1338,18 @@ export default function Home() {
             </div>
           </RevealWrapper>
 
-          <div className="mx-auto mt-12 grid max-w-none grid-cols-1 gap-6 lg:grid-cols-4 px-4" style={{ zIndex: 2, position: 'relative' }}>
+          <div className="mx-auto mt-12 grid max-w-none grid-cols-1 gap-6 lg:grid-cols-4 px-4 items-stretch" style={{ zIndex: 2, position: 'relative' }}>
             {/* Plano Gratuito */}
             <RevealWrapper delay={200}>
-              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
-                <div className="flex-1 flex flex-col">
+              <div className="h-full flex flex-col rounded-2xl bg-white/5 backdrop-blur-sm border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
+                <div className="pt-6 px-6 pb-6 flex flex-col h-full">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-white">Gratuito</h3>
-                    <p className="mt-4 flex items-baseline justify-center">
-                      <span className="text-4xl font-bold tracking-tight text-white">R$ 0,00</span>
-                    </p>
-                    <p className="mt-6 text-sm text-gray-300">Ideal para experimentar</p>
+                    <div className="min-h-[140px] flex flex-col items-center justify-start gap-1 mt-6 pt-4">
+                      <div className="text-4xl font-bold leading-tight text-white">R$ 0,00</div>
+                    </div>
                   </div>
-                  <ul className="flex-1 mt-8 space-y-3">
+                  <ul className="flex-1 mt-8 space-y-3 mb-6">
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -1351,7 +1381,7 @@ export default function Home() {
                       <div className="ml-3 flex items-center gap-2">
                         <div className="relative inline-block group">
                           <span className="text-sm text-gray-300 cursor-help underline decoration-dashed decoration-white" style={{ textUnderlineOffset: '1px' }}>
-                            1 alerta <span className="font-bold text-white">(7 dias)</span>
+                            1 alerta
                           </span>
                           <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 py-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none w-64 border border-gray-600/30" style={{ zIndex: 99999 }}>
                             <div className="text-center">
@@ -1376,7 +1406,7 @@ export default function Home() {
                       <div className="ml-3 flex items-center gap-2">
                         <div className="relative inline-block group">
                           <span className="text-sm text-gray-300 cursor-help underline decoration-dashed decoration-white" style={{ textUnderlineOffset: '1px' }}>
-                            1 contexto no Radar IA <span className="font-bold text-white">(7 dias)</span>
+                            1 contexto no Radar IA
                           </span>
                           <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 py-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none w-64 border border-gray-600/30" style={{ zIndex: 99999 }}>
                             <div className="text-center">
@@ -1407,20 +1437,31 @@ export default function Home() {
 
             {/* Plano Básico */}
             <RevealWrapper delay={300}>
-              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.1),0_15px_15px_-5px_rgba(0,0,0,0.04),0_0_30px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/20">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Mais Popular</span>
-                </div>
-                <div className="flex-1 flex flex-col">
+                <div className="h-full flex flex-col rounded-2xl bg-white/5 backdrop-blur-sm border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
+                <div className="pt-6 px-6 pb-6 flex flex-col h-full">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-white">Básico</h3>
-                    <p className="mt-4 flex items-baseline justify-center">
-                      <span className="text-4xl font-bold tracking-tight text-white">R$ 29,90</span>
-                      <span className="text-sm text-gray-300 ml-1">/mês</span>
-                    </p>
-                    <p className="mt-6 text-sm text-gray-300">Para profissionais individuais</p>
+                    <div className="min-h-[140px] flex flex-col items-center justify-center gap-1 mt-6">
+                      {isAnnualPricing ? (
+                        <>
+                          <div className="flex items-baseline justify-center">
+                            <div className="text-4xl font-bold leading-tight text-white">R$ 23,92</div>
+                            <div className="text-sm text-white/60 ml-1">/mês</div>
+                          </div>
+                          <div className="text-xs text-white/50 mt-1">Cobrado anualmente: R$ 287,04 hoje</div>
+                          <div className="inline-flex items-center px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full mt-2">
+                            <span className="text-xs text-emerald-400 font-medium">20% OFF no plano anual</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-baseline">
+                          <div className="text-4xl font-bold leading-tight text-white">R$ 29,90</div>
+                          <div className="text-sm text-white/60 ml-1">/mês</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <ul className="flex-1 mt-8 space-y-3">
+                  <ul className="flex-1 mt-8 space-y-3 mb-6">
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -1449,7 +1490,7 @@ export default function Home() {
                           </svg>
                         </div>
                       </div>
-                      <span className="ml-3 text-sm text-gray-300">Até 10 alertas</span>
+                      <span className="ml-3 text-sm text-gray-300">10 alertas</span>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
@@ -1478,17 +1519,34 @@ export default function Home() {
 
             {/* Plano Premium */}
             <RevealWrapper delay={400}>
-              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
-                <div className="flex-1 flex flex-col">
+              <div className="h-full flex flex-col rounded-2xl bg-white/5 backdrop-blur-sm border border-blue-400/50 hover:border-blue-400/70 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.1),0_15px_15px_-5px_rgba(0,0,0,0.04),0_0_30px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/30 relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                  <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">Mais Popular</span>
+                </div>
+                <div className="pt-6 px-6 pb-6 flex flex-col h-full">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-white">Premium</h3>
-                    <p className="mt-4 flex items-baseline justify-center">
-                      <span className="text-4xl font-bold tracking-tight text-white">R$ 39,90</span>
-                      <span className="text-sm text-gray-300 ml-1">/mês</span>
-                    </p>
-                    <p className="mt-6 text-sm text-gray-300">Para equipes pequenas</p>
+                    <div className="min-h-[140px] flex flex-col items-center justify-center gap-1 mt-6">
+                      {isAnnualPricing ? (
+                        <>
+                          <div className="flex items-baseline justify-center">
+                            <div className="text-4xl font-bold leading-tight text-white">R$ 31,92</div>
+                            <div className="text-sm text-white/60 ml-1">/mês</div>
+                          </div>
+                          <div className="text-xs text-white/50 mt-1">Cobrado anualmente: R$ 383,04 hoje</div>
+                          <div className="inline-flex items-center px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full mt-2">
+                            <span className="text-xs text-emerald-400 font-medium">20% OFF no plano anual</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-baseline">
+                          <div className="text-4xl font-bold leading-tight text-white">R$ 39,90</div>
+                          <div className="text-sm text-white/60 ml-1">/mês</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <ul className="flex-1 mt-8 space-y-3">
+                  <ul className="flex-1 mt-8 space-y-3 mb-6">
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -1527,7 +1585,7 @@ export default function Home() {
                           </svg>
                         </div>
                       </div>
-                      <span className="ml-3 text-sm text-gray-300">Até 3 contextos ativos no Radar IA</span>
+                      <span className="ml-3 text-sm text-gray-300">3 contextos ativos no Radar IA</span>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
@@ -1546,16 +1604,15 @@ export default function Home() {
 
             {/* Plano Empresarial */}
             <RevealWrapper delay={500}>
-              <div className="relative bg-white/3 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 min-h-[500px] flex flex-col hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
-                <div className="flex-1 flex flex-col">
+              <div className="h-full flex flex-col rounded-2xl bg-white/5 backdrop-blur-sm border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04),0_0_20px_rgba(59,130,246,0.1)]">
+                <div className="pt-6 px-6 pb-8 flex flex-col h-full">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-white">Empresarial</h3>
-                    <p className="mt-4 flex items-baseline justify-center">
-                      <span className="text-4xl font-bold tracking-tight text-white">Personalizado</span>
-                    </p>
-                    <p className="mt-6 text-sm text-gray-300">Para grandes organizações</p>
+                    <div className="min-h-[140px] flex flex-col items-center justify-start gap-1 mt-6 pt-4">
+                      <div className="text-4xl font-bold leading-tight text-white">Personalizado</div>
+                    </div>
                   </div>
-                  <ul className="flex-1 mt-8 space-y-3">
+                  <ul className="flex-1 mt-8 space-y-4 mb-8">
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -1685,7 +1742,7 @@ export default function Home() {
       {/* Test Modal */}
       <TestModal
         isOpen={isTestModalOpen}
-        onClose={() => setIsTestModalOpen(false)}
+        onClose={handleTestModalClose}
         preFilledData={trialForm.name && trialForm.email ? {
           name: trialForm.name,
           email: trialForm.email

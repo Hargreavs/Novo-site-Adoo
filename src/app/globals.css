@@ -1,5 +1,6 @@
 ﻿@import "tailwindcss";
 @import "../styles/onboarding.css";
+@import "../styles/spotlight.css";
 
 :root {
   --background: #0a0a0f;
@@ -2132,10 +2133,6 @@ input[type="radio"]:focus {
 
 }
 
-/* Efeito de hover para cards das sub-abas */
-.card-hover-glow {
-  transition: all 0.3s ease;
-}
 
 /* Classes padrão para inputs - baseadas no estilo da Hero Section */
 .input-standard {
@@ -2343,14 +2340,6 @@ input[type="radio"]:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 
-.card-hover-glow:hover {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow:
-    0 0 20px rgba(59, 130, 246, 0.3),
-    0 0 40px rgba(59, 130, 246, 0.2),
-    0 10px 30px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
-}
 
 /* Estilos personalizados para o DatePicker customizado */
 
@@ -3488,9 +3477,47 @@ input[type="radio"]:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 
+/* ========================================
+   EFEITO DE ANEL DE GRADIENTE PARA CARDS
+   ======================================== */
 
+/* Propriedade CSS customizada para rotação do gradiente */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
 
+/* Animação de rotação do gradiente */
+@keyframes spin-angle {
+  to { --angle: 360deg; }
+}
 
+/* gira gradiente do halo e do anel somente enquanto hover/focus */
+.group:hover > span[aria-hidden],
+.group:focus-within > span[aria-hidden] {
+  animation: spin-angle 6s linear infinite;
+}
+
+/* Acessibilidade - pausar animação se prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .group:hover > span[aria-hidden],
+  .group:focus-within > span[aria-hidden] {
+    animation: none;
+  }
+}
+
+/* Animação slideDown para dropdown */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 /* Respeitar preferência de movimento reduzido para o hover intenso */
 @media (prefers-reduced-motion: reduce) {
   .hover-glow-layer {
@@ -3834,5 +3861,44 @@ input[type="radio"]:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 
+/* ========================================
+   EFEITO DE ANEL DE GRADIENTE PARA CARDS
+   ======================================== */
 
+/* Propriedade CSS customizada para rotação do gradiente */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
 
+/* Animação de rotação do gradiente */
+@keyframes spin-angle {
+  to { --angle: 360deg; }
+}
+
+/* gira gradiente do halo e do anel somente enquanto hover/focus */
+.group:hover > span[aria-hidden],
+.group:focus-within > span[aria-hidden] {
+  animation: spin-angle 6s linear infinite;
+}
+
+/* Acessibilidade - pausar animação se prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .group:hover > span[aria-hidden],
+  .group:focus-within > span[aria-hidden] {
+    animation: none;
+  }
+}
+
+/* Animação slideDown para dropdown */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

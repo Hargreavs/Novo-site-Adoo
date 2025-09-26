@@ -80,37 +80,37 @@ function NavigationMenu({ isModalOpen }: { isModalOpen: boolean }) {
           <div className="flex flex-wrap gap-2 justify-center">
             <button
               onClick={() => scrollToSection('comecar')}
-              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200 cursor-pointer"
             >
               Começar
             </button>
             <button
               onClick={() => scrollToSection('autenticacao')}
-              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200 cursor-pointer"
             >
               Autenticação
             </button>
             <button
               onClick={() => scrollToSection('ambientes')}
-              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200 cursor-pointer"
             >
               Ambientes
             </button>
             <button
               onClick={() => scrollToSection('referencia-api')}
-              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200 cursor-pointer"
             >
               Referência API
             </button>
             <button
               onClick={() => scrollToSection('webhooks')}
-              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200 cursor-pointer"
             >
               Webhooks
             </button>
             <button
               onClick={() => scrollToSection('codigos-erro')}
-              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+              className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-all duration-200 cursor-pointer"
             >
               Códigos de Erro
             </button>
@@ -238,7 +238,7 @@ export default function API() {
                     });
                   }
                 }}
-                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
               >
                 <PlayIcon className="w-4 h-4 mr-2" />
                 Começar Agora
@@ -254,7 +254,7 @@ export default function API() {
                     });
                   }
                 }}
-                className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-300 border border-gray-600 rounded-lg hover:text-white hover:border-gray-400 transition-all duration-200"
+                className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-300 border border-gray-600 rounded-lg hover:text-white hover:border-gray-400 transition-all duration-200 cursor-pointer"
               >
                 <DocumentTextIcon className="w-4 h-4 mr-2" />
                 Ver Documentação
@@ -1179,7 +1179,7 @@ Authorization: Bearer sua-api-key
             <div className="flex justify-center">
               <button
                 onClick={handleOpenForm}
-                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
               >
                 <RocketLaunchIcon className="w-5 h-5 mr-2" />
                 Obter API Key Gratuita
