@@ -2431,14 +2431,14 @@ function ExplorarContent() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Sidebar - Esquerda */}
             <div className="lg:col-span-1">
-              <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+              <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6 min-h-[200px] flex flex-col justify-start">
                 <h2 className="text-xl font-semibold text-white mb-4">Navegação</h2>
                 <nav className="space-y-2">
                   {/* Mostrar aba Tudo no topo apenas se type=tudo */}
                   {shouldShowTudoTab() && (
                     <button
                       onClick={() => handleTabChange('tudo')}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base font-semibold ${
+                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base font-semibold cursor-pointer ${
                         activeTab === 'tudo'
                           ? 'bg-gradient-to-r from-blue-600/40 to-purple-600/40 text-white border-blue-500/60 shadow-lg shadow-blue-500/20'
                           : 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 text-blue-200 border-blue-400/30 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-white hover:border-blue-400/50'
@@ -2450,7 +2450,7 @@ function ExplorarContent() {
                   
                   <button
                     onClick={() => handleTabChange('processos')}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base ${
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base cursor-pointer ${
                       activeTab === 'processos'
                         ? 'bg-blue-600/30 text-blue-200 border-blue-500/40'
                         : 'bg-transparent text-gray-300 border-transparent hover:bg-blue-500/10 hover:text-blue-200 hover:border-blue-400/30'
@@ -2460,7 +2460,7 @@ function ExplorarContent() {
                   </button>
                   <button
                     onClick={() => handleTabChange('diarios')}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base ${
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 text-base cursor-pointer ${
                       activeTab === 'diarios'
                         ? 'bg-blue-600/30 text-blue-200 border-blue-500/40'
                         : 'bg-transparent text-gray-300 border-transparent hover:bg-blue-500/10 hover:text-blue-200 hover:border-blue-400/30'
@@ -3275,7 +3275,7 @@ function ExplorarContent() {
               {activeTab === 'processos' && (
                 <div className="space-y-6 fade-in" key="processos">
                   {/* Barra de Pesquisa de Processos */}
-                  <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                  <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6 min-h-[200px] flex flex-col justify-start">
                     <h3 className="text-lg font-semibold text-white mb-4">Pesquisa processos nos Diários de Justiça</h3>
                     
                     {/* Campo de Busca */}
@@ -3323,14 +3323,6 @@ function ExplorarContent() {
                       </button>
               </div>
 
-                    {/* Exemplos */}
-                    <div className="text-sm text-gray-400">
-                      <p className="mb-2">Exemplos:</p>
-                      <div className="flex flex-wrap gap-4">
-                        <span className="text-gray-500">• João da Silva</span>
-                        <span className="text-gray-500">• 0001234-56.2024.5.10.0000</span>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Autocomplete Portal */}
@@ -3622,7 +3614,7 @@ function ExplorarContent() {
               {activeTab === 'diarios' && (
                 <div className="space-y-6 fade-in" key="diarios">
                   {/* Barra de Pesquisa de Diários Oficiais */}
-                  <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                  <div className="bg-white/3 backdrop-blur-sm border border-white/5 rounded-2xl p-6 min-h-[200px] flex flex-col justify-start">
                     <h3 className="text-lg font-semibold text-white mb-4">Pesquisa termos nos Diários Oficiais</h3>
                     
                     {/* Campo de Busca */}
@@ -3670,15 +3662,6 @@ function ExplorarContent() {
                       </button>
               </div>
 
-                    {/* Exemplos */}
-                    <div className="text-sm text-gray-400">
-                      <p className="mb-2">Exemplos:</p>
-                      <div className="flex flex-wrap gap-4">
-                        <span className="text-gray-500">• João da Silva</span>
-                        <span className="text-gray-500">• Empresa XPTO</span>
-                        <span className="text-gray-500">• 123.456.789-10</span>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Autocomplete Portal */}

@@ -23,7 +23,6 @@ import {
   updateSubscriptionPaymentMethod,
   getCurrentPlan,
   saveCurrentPlan,
-  initializeMockData,
   generateId
 } from '@/utils/paymentStorage';
 import jsPDF from 'jspdf';
@@ -96,7 +95,7 @@ function CardPickerPopover({
           >
             <div className="flex items-center gap-3">
               <BrandBadge brand={c.brand} />
-              <span>{BRAND[c.brand].label} <span className="font-mono text-slate-300">•••• {c.last4}</span></span>
+              <span>{BRAND[c.brand]?.label || 'Cartão'} <span className="font-mono text-slate-300">•••• {c.last4}</span></span>
             </div>
             {c.id === defaultId && <span className="text-emerald-300 text-xs">✓ Padrão</span>}
           </button>
@@ -234,8 +233,9 @@ export default function Pagamentos() {
 
   // Carregar dados persistidos na inicialização
   useEffect(() => {
-    // Inicializar dados mock se necessário
-    initializeMockData();
+    // Limpar dados mock do localStorage para testes
+    localStorage.removeItem('payment_methods');
+    localStorage.removeItem('subscriptions');
     
     // Carregar dados do localStorage
     const savedPaymentMethods = getPaymentMethods();
@@ -432,6 +432,11 @@ export default function Pagamentos() {
       setSelectedPaymentMethodId(savedCard.id);
       setMakeDefault(false); // Sempre começar com checkbox desmarcado
       setSubscriptionFlow('summary');
+    } else if (paymentMethods.length > 0) {
+      // Se não tem savedCard mas tem cartões disponíveis, usar o primeiro
+      setSelectedPaymentMethodId(paymentMethods[0].id);
+      setMakeDefault(false);
+      setSubscriptionFlow('summary');
     } else {
       setSubscriptionFlow('addCard');
     }
@@ -463,8 +468,15 @@ export default function Pagamentos() {
       
       // Atualizar estados locais
       const updatedMethods = [...paymentMethods, newCard];
+      console.log('=== DEBUG PAYMENT SUCCESS ===');
+      console.log('Novo cartão criado:', newCard);
+      console.log('Métodos atualizados:', updatedMethods);
+      
       setPaymentMethods(updatedMethods);
       setSavedCard(newCard);
+      setCurrentId(newCard.id);
+      setDefaultId(newCard.id);
+      setSelectedCardId(newCard.id);
     } else if (savedCard) {
       // Se não veio dados do cartão mas já existe um cartão salvo, usar ele
       cardId = savedCard.id;
@@ -1166,7 +1178,7 @@ export default function Pagamentos() {
                                       return selectedCard ? (
                                         <>
                                           <span className="text-white font-semibold">
-                                            {BRAND[selectedCard.brand].label} •••• {selectedCard.last4}
+                                            {BRAND[selectedCard.brand]?.label || 'Cartão'} •••• {selectedCard.last4}
                                           </span>
                                           <button
                                             ref={trocarBtnRef}
@@ -1545,13 +1557,26 @@ export default function Pagamentos() {
                 <h2 className="text-xl font-bold text-white mb-6">Métodos de pagamento</h2>
                 
                 <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                  {(() => {
+                    console.log('=== DEBUG MÉTODOS DE PAGAMENTO ===');
+                    console.log('savedCard:', savedCard);
+                    console.log('paymentMethods.length:', paymentMethods.length);
+                    console.log('paymentMethods:', paymentMethods);
+                    console.log('showAddCardEditor:', showAddCardEditor);
+                    console.log('showCardEditor:', showCardEditor);
+                    return null;
+                  })()}
                   {showAddCardEditor ? (
                     <div className={`transition-all duration-300 animate-fade-in-delay-2`}>
                       <PaymentStep
                         plan={{ name: 'Novo Cartão', price: 'R$ 0,00', billing: 'Cadastro' }}
                         onSuccess={(planName, cardData) => {
+                          console.log('=== DEBUG PAYMENT STEP SUCCESS (NOVO CARTÃO) ===');
+                          console.log('planName:', planName);
+                          console.log('cardData:', cardData);
                           if (cardData) {
                             handleSaveCard(cardData);
+                            setShowAddCardEditor(false); // Fechar o editor após salvar
                           }
                         }}
                         onBack={handleCancelAddCard}
@@ -1581,7 +1606,7 @@ export default function Pagamentos() {
                         hidePlanSummary={true}
                       />
                     </div>
-                  ) : savedCard ? (
+                  ) : (savedCard || paymentMethods.length > 0) ? (
                     <div className={`transition-all duration-300 animate-fade-in-delay-3`}>
                       <div className="space-y-4">
                         {/* Dropdown do cartão */}
