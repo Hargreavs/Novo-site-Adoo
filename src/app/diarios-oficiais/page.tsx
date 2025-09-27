@@ -2127,9 +2127,9 @@ export default function DiariosOficiais() {
                             <button
                               key={option.value}
                               onClick={() => handlePeriodSelect(option.value)}
-                              className={`px-3 py-2 sm:px-5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                              className={`px-3 py-2 sm:px-5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium cursor-pointer ${
                                 searchPeriod === option.value
-                                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                                  ? 'bg-blue-600 text-white'
                                   : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white border border-white/20 hover:border-white/30'
                               }`}
                             >
@@ -2900,7 +2900,7 @@ export default function DiariosOficiais() {
                             <div key={poder}>
                               <button
                                 onClick={() => togglePoder(poder, 'navegar')}
-                                className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                                className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
                               >
                                 <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
                                 <span className="transform transition-transform duration-200 text-blue-400">
@@ -2933,7 +2933,7 @@ export default function DiariosOficiais() {
                                       <div key={subcategoria}>
                                         <button
                                           onClick={() => toggleSubcategoria(poder, subcategoria, 'navegar')}
-                                          className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                                          className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
                                         >
                                           <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
                                           <span className="transform transition-transform duration-200 text-blue-400">
@@ -2969,20 +2969,6 @@ export default function DiariosOficiais() {
                       </div>
                     </div>
                     
-                    {/* Botão de limpar seleção */}
-                    {selectedDiario && (
-                      <div className="mt-6 flex justify-end">
-                        <button
-                          onClick={() => setSelectedDiario('')}
-                          className="px-3 py-2 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 hover:border-gray-500/50 text-gray-300 hover:text-gray-200 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 hover:scale-105"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Limpar seleção
-                        </button>
-                      </div>
-                    )}
                   </div>
                   
                   <div>
@@ -2999,6 +2985,46 @@ export default function DiariosOficiais() {
                         className="w-full"
                       />
                     </div>
+
+                    {/* Chips de períodos pré-definidos */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-300 mb-3">
+                        Períodos pré-definidos
+                      </label>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            // Último disponível - data de hoje
+                            const today = new Date();
+                            setSelectedDate(today.toISOString().split('T')[0]);
+                          }}
+                          className={`px-3 py-2 rounded-xl text-sm font-medium cursor-pointer ${
+                            selectedDate === new Date().toISOString().split('T')[0]
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white border border-white/20 hover:border-white/30'
+                          }`}
+                        >
+                          Último disponível
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            // Ontem
+                            const yesterday = new Date();
+                            yesterday.setDate(yesterday.getDate() - 1);
+                            setSelectedDate(yesterday.toISOString().split('T')[0]);
+                          }}
+                          className={`px-3 py-2 rounded-xl text-sm font-medium cursor-pointer ${
+                            selectedDate === new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white border border-white/20 hover:border-white/30'
+                          }`}
+                        >
+                          Ontem
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3007,9 +3033,30 @@ export default function DiariosOficiais() {
               <div className="space-y-3 sm:space-y-4">
                 {selectedDiario ? (
                   <div className="space-y-3 sm:space-y-4">
-                    <h4 className="text-sm font-semibold text-white sm:text-base">
-                      Edições disponíveis - {diarios.find(d => d.id === selectedDiario)?.name}
-                    </h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-white sm:text-base">
+                        Edições disponíveis - {diarios.find(d => d.id === selectedDiario)?.name}
+                      </h4>
+                      <button
+                        onClick={() => setSelectedDiario('')}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
+                        style={{
+                          backgroundColor: '#155DFC',
+                          color: 'white',
+                          border: '1px solid #155DFC'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#0f4bc4';
+                          e.currentTarget.style.borderColor = '#0f4bc4';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#155DFC';
+                          e.currentTarget.style.borderColor = '#155DFC';
+                        }}
+                      >
+                        Limpar seleção
+                      </button>
+                    </div>
                     
                     {/* Verificar se o diário tem múltiplas seções */}
                     {hasMultipleSections(selectedDiario) ? (
@@ -3028,7 +3075,7 @@ export default function DiariosOficiais() {
                             <div className="flex gap-2">
                               <button 
                                 onClick={() => toggleSections('dou-today')}
-                                className="expand-button px-3 py-1.5 bg-gray-600/20 text-gray-300 hover:bg-gray-600/30 rounded-lg text-xs font-medium flex items-center gap-1.5"
+                                className="expand-button px-3 py-1.5 bg-gray-600/20 text-gray-300 hover:bg-gray-600/30 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer"
                               >
                                 <span className="transform transition-transform duration-200">
                                   {expandedSections['dou-today'] ? '−' : '+'}
@@ -3036,7 +3083,7 @@ export default function DiariosOficiais() {
                                 {expandedSections['dou-today'] ? 'Ocultar seções' : 'Ver seções'}
                               </button>
                               {/* Botão "Baixar PDF" removido para diários com múltiplas seções */}
-                              <div className="px-3 py-1.5 bg-amber-600/20 text-amber-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
+                              <div className="px-3 py-1.5 bg-blue-600/20 text-blue-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
                                 <span>ℹ️</span>
                                 Expanda as seções para baixar
                               </div>
@@ -3048,14 +3095,14 @@ export default function DiariosOficiais() {
                             <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ${sectionAnimations['dou-today'] || ''}`}>
                             <div className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors">
                               <div className="flex items-center justify-between mb-2">
-                                <h6 className="text-xs font-semibold text-blue-300">1ª Seção</h6>
+                                <h6 className="text-xs font-semibold" style={{color: '#86B8ED'}}>1ª Seção</h6>
                                 <span className="text-xs text-gray-400">89 páginas</span>
                               </div>
                               <p className="text-xs text-gray-400 mb-3">
                                 Atos do Poder Executivo, Leis, Decretos, Portarias, etc.
                               </p>
                               <div className="flex gap-1">
-                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
@@ -3068,14 +3115,14 @@ export default function DiariosOficiais() {
                             
                             <div className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors">
                               <div className="flex items-center justify-between mb-2">
-                                <h6 className="text-xs font-semibold text-green-300">2ª Seção</h6>
+                                <h6 className="text-xs font-semibold" style={{color: '#86B8ED'}}>2ª Seção</h6>
                                 <span className="text-xs text-gray-400">78 páginas</span>
                               </div>
                               <p className="text-xs text-gray-400 mb-3">
                                 Atos do Poder Judiciário, Tribunais, Ministério Público, etc.
                               </p>
                               <div className="flex gap-1">
-                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
@@ -3088,14 +3135,14 @@ export default function DiariosOficiais() {
                             
                             <div className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors">
                               <div className="flex items-center justify-between mb-2">
-                                <h6 className="text-xs font-semibold text-purple-300">3ª Seção</h6>
+                                <h6 className="text-xs font-semibold" style={{color: '#86B8ED'}}>3ª Seção</h6>
                                 <span className="text-xs text-gray-400">80 páginas</span>
                               </div>
                               <p className="text-xs text-gray-400 mb-3">
                                 Atos do Poder Legislativo, Contratos, Licitações, etc.
                               </p>
                               <div className="flex gap-1">
-                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
@@ -3109,14 +3156,14 @@ export default function DiariosOficiais() {
                             {/* Seção Extra A */}
                             <div className="bg-white/5 border border-orange-500/30 rounded-lg p-3 hover:bg-white/10 transition-colors">
                               <div className="flex items-center justify-between mb-2">
-                                <h6 className="text-xs font-semibold text-orange-300">2ª Seção - Extra A</h6>
+                                <h6 className="text-xs font-semibold" style={{color: '#DFA464'}}>2ª Seção - Extra A</h6>
                                 <span className="text-xs text-gray-400">32 páginas</span>
                               </div>
                               <p className="text-xs text-gray-400 mb-3">
                                 Atos do Poder Judiciário - Edição Extra, Urgências, etc.
                               </p>
                               <div className="flex gap-1">
-                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
@@ -3128,16 +3175,16 @@ export default function DiariosOficiais() {
                             </div>
                             
                             {/* Seção Extra B */}
-                            <div className="bg-white/5 border border-cyan-500/30 rounded-lg p-3 hover:bg-white/10 transition-colors">
+                            <div className="bg-white/5 border border-orange-500/30 rounded-lg p-3 hover:bg-white/10 transition-colors">
                               <div className="flex items-center justify-between mb-2">
-                                <h6 className="text-xs font-semibold text-cyan-300">3ª Seção - Extra A</h6>
+                                <h6 className="text-xs font-semibold" style={{color: '#DFA464'}}>3ª Seção - Extra A</h6>
                                 <span className="text-xs text-gray-400">33 páginas</span>
                               </div>
                               <p className="text-xs text-gray-400 mb-3">
                                 Atos do Poder Legislativo - Edição Extra, Contratos Urgentes, etc.
                               </p>
                               <div className="flex gap-1">
-                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                                <button className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer">
                                   <EyeIcon className="h-2.5 w-2.5" />
                                   Ver
                                 </button>
@@ -3168,7 +3215,7 @@ export default function DiariosOficiais() {
                               </div>
                               <div className="flex gap-2">
                                 {/* Botão "Baixar PDF" removido para diários com múltiplas seções */}
-                                <div className="px-3 py-1.5 bg-amber-600/20 text-amber-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
+                                <div className="px-3 py-1.5 bg-blue-600/20 text-blue-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
                                   <span>ℹ️</span>
                                   Expanda as seções para baixar
                                 </div>
