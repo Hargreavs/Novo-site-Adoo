@@ -5,6 +5,7 @@ import TransparentHeader from "@/components/TransparentHeader";
 import RevealWrapper from "@/components/RevealWrapper";
 import RegisterModal from "@/components/RegisterModal";
 import TestModal from "@/components/TestModal";
+import AlertDialog from "@/components/AlertDialog";
 
 // Lazy load heavy components
 const GuidedOnboarding = lazy(() => import("@/components/onboarding/GuidedOnboarding"));
@@ -2235,7 +2236,7 @@ export default function RadarIA() {
 
       {/* Toast de notificação */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-2 duration-300">
+        <div className="fixed top-36 right-4 z-50 animate-in slide-in-from-right-2 duration-300">
           <div className={`px-6 py-4 rounded-lg shadow-lg border backdrop-blur-sm ${
             toast.type === 'success' 
               ? 'bg-green-600/20 border-green-500/30 text-green-300' 
@@ -2317,44 +2318,19 @@ export default function RadarIA() {
 
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0 w-12 h-12 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-            </div>
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-white mb-2">
-                Excluir Monitoramento
-              </h3>
-              <p className="text-sm text-gray-300 mb-6">
-                Tem certeza que deseja excluir este monitoramento? Esta ação não pode ser desfeita.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setDeletingMonitoringId(null);
-                  }}
-                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors cursor-pointer"
-                >
-                  Excluir
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AlertDialog
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingMonitoringId(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Excluir Monitoramento"
+        description="Tem certeza que deseja excluir este monitoramento? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        confirmTone="danger"
+        isLoading={false}
+      />
       
     </div>
   );

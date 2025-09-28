@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { readSubscription } from '@/lib/billing/subscription';
+import { readSubscription, readUserSubscription, saveUserSubscription } from '@/lib/billing/subscription';
 import { saveCurrentPlan } from '@/utils/paymentStorage';
 
 export function useSubscription() {
@@ -7,8 +7,15 @@ export function useSubscription() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // hidrata no client
-    const subscription = readSubscription();
+    // hidrata no client - priorizar assinatura do usuário
+    const userSubscription = readUserSubscription();
+    const fallbackSubscription = readSubscription();
+    const subscription = userSubscription || fallbackSubscription;
+    
+    console.log('🔄 HOOK INIT - userSubscription:', userSubscription);
+    console.log('🔄 HOOK INIT - fallbackSubscription:', fallbackSubscription);
+    console.log('🔄 HOOK INIT - final subscription:', subscription);
+    console.log('🔄 HOOK INIT - subscription.planId:', subscription?.planId);
     setSub(subscription);
     setLoaded(true);
 
@@ -22,8 +29,12 @@ export function useSubscription() {
     }
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'cjo.subscription') {
-        const newSub = readSubscription();
+      if (e.key === 'cjo.subscription' || e.key === 'cjo.user_subscriptions') {
+        const userSubscription = readUserSubscription();
+        const fallbackSubscription = readSubscription();
+        const newSub = userSubscription || fallbackSubscription;
+        
+        console.log('🔄 STORAGE EVENT - userSub:', userSubscription, 'fallback:', fallbackSubscription, 'final:', newSub);
         setSub(newSub);
         
         // Sincronizar com o sistema de current_plan
@@ -38,7 +49,11 @@ export function useSubscription() {
     };
     
     const onCustom = () => {
-      const newSub = readSubscription();
+      const userSubscription = readUserSubscription();
+      const fallbackSubscription = readSubscription();
+      const newSub = userSubscription || fallbackSubscription;
+      
+      console.log('🔄 CUSTOM EVENT - userSub:', userSubscription, 'fallback:', fallbackSubscription, 'final:', newSub);
       setSub(newSub);
       
       // Sincronizar com o sistema de current_plan

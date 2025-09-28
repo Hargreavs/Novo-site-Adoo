@@ -30,10 +30,9 @@ import {
   updateSubscriptionPaymentMethod,
   getCurrentPlan,
   saveCurrentPlan,
-  generateId,
-  initializeMockData
+  generateId
 } from '@/utils/paymentStorage';
-import { saveSubscription } from '@/lib/billing/subscription';
+import { saveSubscription, saveUserSubscription } from '@/lib/billing/subscription';
 import jsPDF from 'jspdf';
 
 // Componente CardPickerPopover
@@ -247,9 +246,6 @@ export default function Pagamentos() {
 
   // Carregar dados persistidos na inicialização
   useEffect(() => {
-    // Inicializar dados mock
-    initializeMockData();
-    
     // Carregar dados do localStorage
     const savedPaymentMethods = getPaymentMethods();
     const savedSubscriptions = getSubscriptions();
@@ -626,9 +622,13 @@ export default function Pagamentos() {
 
   const getCurrentPlanId = (): 'free' | 'basic' | 'premium' => {
     if (!selectedPlan) return 'free';
-    const planName = selectedPlan.name.toLowerCase();
-    if (planName.includes('básico')) return 'basic';
-    if (planName.includes('premium')) return 'premium';
+    const planName = selectedPlan.name;
+    console.log('🔍 getCurrentPlanId:', planName, '->', 
+      planName === 'Básico' ? 'basic' : 
+      planName === 'Premium' ? 'premium' : 'free');
+    
+    if (planName === 'Básico') return 'basic';
+    if (planName === 'Premium') return 'premium';
     return 'free';
   };
 
@@ -788,7 +788,7 @@ export default function Pagamentos() {
     }
     
     // Salvar no estado global de assinatura
-    const planId = planName === 'Básico' ? 'basic' : planName === 'Premium' ? 'premium' : 'free';
+    const planId = getCurrentPlanId();
     const cycle = isAnnualPricing ? 'annual' : 'monthly';
     
     // Calcular data de renovação
@@ -799,14 +799,19 @@ export default function Pagamentos() {
       nextRenewal.setMonth(nextRenewal.getMonth() + 1);
     }
     
-    saveSubscription({
+    const subscriptionData = {
       planId: planId as 'basic' | 'premium' | 'free',
       cycle: cycle as 'monthly' | 'annual',
-      status: 'active',
+      status: 'active' as const,
       nextRenewalISO: nextRenewal.toISOString(),
       firstChargeAmountCents: planName !== 'Gratuito' ? totalCents : undefined,
       updatedAtISO: new Date().toISOString(),
-    });
+    };
+    
+    console.log('💾 PAYMENT SUCCESS - planName:', planName, 'planId:', planId, 'cycle:', cycle);
+    
+    // Salvar assinatura associada ao usuário atual
+    saveUserSubscription(subscriptionData);
     
     setAnimationDirection('right');
     setSubscriptionFlow('success');

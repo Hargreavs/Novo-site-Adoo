@@ -12,8 +12,24 @@ const PLAN_LABEL: Record<PlanId, string> = {
 };
 
 export default function AssinaturasTab() {
+  console.log('🚀 ASSINATURAS TAB RENDERIZANDO...');
   const { sub, loaded } = useSubscription();
   const [cycle, setCycle] = useState<BillingCycle>('annual');
+  
+  // Debug temporário
+  console.log('🔍 ASSINATURAS TAB - sub:', sub, 'loaded:', loaded);
+  console.log('🔍 FREE CARD LOGIC:');
+  console.log('- sub?.planId:', sub?.planId);
+  console.log('- sub?.planId === "free":', sub?.planId === 'free');
+  console.log('- ctaLabel will be:', sub?.planId === 'free' ? 'Seu plano' : 'Voltar ao gratuito');
+  console.log('- ctaDisabled will be:', sub?.planId === 'free');
+  
+  // Forçar log sempre
+  if (sub?.planId === 'premium') {
+    console.log('🚨 USUÁRIO ESTÁ NO PREMIUM - BOTÃO DEVE SER AZUL!');
+  }
+  
+  
 
   // inicializa o toggle com o ciclo do usuário
   useEffect(() => {
@@ -82,9 +98,9 @@ export default function AssinaturasTab() {
           title="Gratuito"
           priceLabel="R$ 0,00"
           features={['Buscar termos ilimitado', 'Download ilimitado de diários oficiais', '1 alerta', '1 contexto no Radar IA']}
-          ctaLabel={(!sub || sub.planId !== 'free') ? 'Mudar para gratuito' : 'Seu plano'}
-          ctaDisabled={isActive('free')}
-          badge={isActive('free') ? 'Seu plano' : undefined}
+          ctaLabel="Voltar ao gratuito"
+          ctaDisabled={false}
+          badge={undefined}
           onClick={() => {/* ação p/ migrar p/ free */}}
         />
 
@@ -136,6 +152,13 @@ function PlanCard({
   ctaDisabled?: boolean;
   onClick: () => void;
 }) {
+  // Debug para o card Gratuito
+  if (title === 'Gratuito') {
+    console.log('🔍 PLAN CARD GRATUITO DEBUG:');
+    console.log('- ctaLabel recebido:', ctaLabel);
+    console.log('- ctaDisabled recebido:', ctaDisabled);
+    console.log('- badge recebido:', badge);
+  }
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col">
       <div className="flex items-center justify-between">
@@ -172,3 +195,4 @@ function PlanCard({
     </div>
   );
 }
+

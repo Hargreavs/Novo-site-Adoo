@@ -1477,11 +1477,12 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                         className={`w-full px-3 py-2 text-white text-xs font-medium rounded-lg ${
                           isPlanActive('free') 
                             ? 'bg-gray-600 cursor-not-allowed opacity-50' 
-                            : 'bg-gray-600 cursor-not-allowed opacity-50'
+                            : 'bg-blue-500 hover:bg-blue-600 cursor-pointer'
                         }`}
-                        disabled
+                        disabled={isPlanActive('free')}
+                        onClick={isPlanActive('free') ? undefined : () => {/* ação para voltar ao gratuito */}}
                       >
-                        {isPlanActive('free') ? 'Seu plano' : 'Plano Atual'}
+                        {isPlanActive('free') ? 'Seu plano' : 'Voltar ao gratuito'}
                       </button>
                     </div>
                   </div>

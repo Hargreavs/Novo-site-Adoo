@@ -59,23 +59,23 @@ export default function Toast({
   const getBackgroundColor = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-600 border-green-500';
+        return 'bg-green-600/20 border-green-500/30 text-green-300';
       case 'error':
-        return 'bg-red-600 border-red-500';
+        return 'bg-red-600/20 border-red-500/30 text-red-300';
       case 'info':
-        return 'bg-blue-600 border-blue-500';
+        return 'bg-blue-600/20 border-blue-500/30 text-blue-300';
     }
   };
 
   return (
     <div
-      className={`fixed top-32 right-4 z-50 transition-all duration-300 ${
+      className={`fixed top-36 right-4 z-50 transition-all duration-300 ${
         show ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
       }`}
     >
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${getBackgroundColor()}`}>
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border backdrop-blur-sm ${getBackgroundColor()}`}>
         {getIcon()}
-        <span className="text-white font-medium">{message}</span>
+        <span className="font-medium">{message}</span>
         <button
           onClick={() => {
             setShow(false);
