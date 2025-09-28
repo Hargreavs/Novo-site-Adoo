@@ -1,6 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import CouponInput from '@/components/billing/CouponInput';
+import { CouponValidationResponse, BillingCycle } from '@/types/billing';
+import { Coupon } from '@/pricing/coupon';
+import { applyCoupon } from '@/pricing/coupon';
+import { formatBRL, toCents } from '@/utils/money';
 
 interface PaymentStepProps {
   plan: {
@@ -8,7 +13,7 @@ interface PaymentStepProps {
     price: string;
     billing: string;
   };
-  onSuccess: (planName: string, cardData?: any) => void;
+  onSuccess: (planName: string, cardData?: any, couponCode?: string) => void;
   onBack: () => void;
   initialCardData?: {
     number: string;
@@ -20,9 +25,16 @@ interface PaymentStepProps {
   };
   customTitle?: string;
   hidePlanSummary?: boolean;
+  // Props para cupom
+  planId?: 'free' | 'basic' | 'premium';
+  billingCycle?: BillingCycle;
+  showCouponInput?: boolean;
+  // Props para cálculo de preços
+  priceMonthlyCents?: number;
+  priceAnnualCents?: number;
 }
 
-export default function PaymentStep({ plan, onSuccess, onBack, initialCardData, customTitle, hidePlanSummary }: PaymentStepProps) {
+export default function PaymentStep({ plan, onSuccess, onBack, initialCardData, customTitle, hidePlanSummary, planId, billingCycle, showCouponInput, priceMonthlyCents, priceAnnualCents }: PaymentStepProps) {
   // Detectar tipo de cartão baseado no número
   const detectCardType = (number: string) => {
     const cleanNumber = number.replace(/\s/g, '');
@@ -76,6 +88,23 @@ export default function PaymentStep({ plan, onSuccess, onBack, initialCardData, 
   const [isProcessing, setIsProcessing] = useState(false);
   const [cardType, setCardType] = useState<'visa' | 'mastercard' | 'amex' | 'unknown'>('unknown');
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  
+  // Estados para cupom
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResponse | null>(null);
+  
+  // Cálculo de preços unificado
+  const { discountCents, totalCents, monthlyCents, annualPriceCents } = useMemo(() => {
+    if (!priceMonthlyCents || !priceAnnualCents || !billingCycle) {
+      return { discountCents: 0, totalCents: 0, monthlyCents: 0, annualPriceCents: 0 };
+    }
+    
+    const annualPriceCents = priceAnnualCents;
+    const coupon: Coupon | undefined = appliedCoupon?.valid ? appliedCoupon.coupon as Coupon : undefined;
+    const { discountCents, totalCents } = applyCoupon(annualPriceCents, coupon);
+    const monthlyCents = Math.round(totalCents / 12);
+    
+    return { discountCents, totalCents, monthlyCents, annualPriceCents };
+  }, [priceAnnualCents, appliedCoupon]);
 
   // Formatar data de validade MM/AA
   const formatExpiry = (value: string) => {
@@ -285,14 +314,14 @@ export default function PaymentStep({ plan, onSuccess, onBack, initialCardData, 
     const mockCards = ['4444444444445555', '5555555555556666', '5555555555554444'];
     
     if (mockCards.includes(cleanNumber)) {
-      // Sucesso - passar dados do cartão
+      // Sucesso - passar dados do cartão e cupom
       onSuccess(plan.name, {
         number: cleanNumber,
         name: cardData.name.trim().replace(/\s+/g, ' '),
         expiry: cardData.expiry,
         cvc: cardData.cvc,
         brand: detectCardType(cleanNumber) === 'mastercard' ? 'mastercard' : 'visa'
-      });
+      }, appliedCoupon?.coupon?.code);
     } else {
       // Falha
       setErrors({ number: 'Use um dos cartões de teste: 4444 4444 4444 5555, 5555 5555 5555 6666 ou 5555 5555 5555 4444' });
@@ -363,17 +392,50 @@ export default function PaymentStep({ plan, onSuccess, onBack, initialCardData, 
 
       {/* Resumo do Plano - apenas quando não estiver editando e não estiver oculto */}
       {!initialCardData && !hidePlanSummary && (
-        <div className="bg-gray-900/60 border border-gray-800/50 rounded-lg p-3 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-            <p className="text-sm text-gray-400">{plan.billing}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-white">{plan.price}</div>
-            <div className="text-sm text-gray-400">por mês</div>
+        <div className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 p-4 md:p-5 mb-6">
+          <div className="space-y-1">
+            <div className="text-sm text-gray-300">{plan.name}</div>
+            <div className="flex items-baseline gap-2">
+              {discountCents > 0 && (
+                <span className="text-gray-400 line-through">
+                  {formatBRL(Math.round(priceAnnualCents / 12))}
+                </span>
+              )}
+              <span className="text-2xl font-semibold text-white">
+                {formatBRL(monthlyCents)}
+              </span>
+              <span className="text-sm text-gray-400">/ mês</span>
+            </div>
+            <div className="text-xs text-gray-400">
+              {discountCents > 0 ? (
+                <>
+                  Total anual hoje:{' '}
+                  <span className="line-through">
+                    {formatBRL(priceAnnualCents)}
+                  </span>{' '}
+                  → <strong className="text-white">{formatBRL(totalCents)}</strong>
+                </>
+              ) : (
+                <>
+                  Total anual hoje:{' '}
+                  <strong className="text-white">{formatBRL(totalCents)}</strong>
+                </>
+              )}
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Componente de Cupom */}
+      {showCouponInput && planId && billingCycle && (
+        <div className="mb-6">
+          <CouponInput
+            planId={planId}
+            cycle={billingCycle}
+            onApplied={setAppliedCoupon}
+            onRemoved={() => setAppliedCoupon(null)}
+            className="w-full"
+          />
         </div>
       )}
 

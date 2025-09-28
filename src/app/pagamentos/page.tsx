@@ -10,9 +10,14 @@ import { detectBrand, BRAND } from '@/utils/brand';
 import { BrandBadge, BadgeDefault } from '@/components/PaymentMethodComponents';
 import PaymentMethodDropdown from '@/components/PaymentMethodDropdown';
 import { PaymentMethod, Subscription } from '@/types/payment';
+import { CouponValidationResponse, BillingCycle } from '@/types/billing';
 import AlertDialog from '@/components/AlertDialog';
 import ReplacePaymentMethodDialog from '@/components/ReplacePaymentMethodDialog';
 import Toast from '@/components/Toast';
+import CouponInput from '@/components/billing/CouponInput';
+import { formatBRL, toCents } from '@/utils/money';
+import { applyCoupon, Coupon } from '@/pricing/coupon';
+import { findCoupon } from '@/lib/coupons';
 import { 
   getPaymentMethods, 
   savePaymentMethods, 
@@ -175,6 +180,10 @@ export default function Pagamentos() {
   const [showAlertDialog, setShowAlertDialog] = useState(false);
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
   const [cardToRemove, setCardToRemove] = useState<PaymentMethod | null>(null);
+  
+  // Estados para cupons
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResponse | null>(null);
+  const [couponCode, setCouponCode] = useState<string>('');
   const [isRemovingCard, setIsRemovingCard] = useState(false);
   
   // Estados para downgrade para gratuito
@@ -245,6 +254,17 @@ export default function Pagamentos() {
     console.log('=== DEBUG INICIALIZAÇÃO ===');
     console.log('Cartões carregados:', savedPaymentMethods);
     console.log('Cartões com isDefault:', savedPaymentMethods.map(c => ({ id: c.id, brand: c.brand, isDefault: c.isDefault })));
+    console.log('Assinaturas carregadas:', savedSubscriptions);
+    console.log('Plano atual:', currentPlan);
+    
+    // Verificar se há assinatura Premium com desconto
+    const premiumSubscription = savedSubscriptions.find(s => s.planName === 'Premium' && s.status === 'active');
+    if (premiumSubscription) {
+      console.log('=== DEBUG PREMIUM SUBSCRIPTION FOUND ===');
+      console.log('premiumSubscription:', premiumSubscription);
+      console.log('firstChargeAmountCents:', premiumSubscription.firstChargeAmountCents);
+      console.log('priceAnnualCents:', premiumSubscription.priceAnnualCents);
+    }
     
     setPaymentMethods(savedPaymentMethods);
     setSubscriptions(savedSubscriptions);
@@ -306,9 +326,146 @@ export default function Pagamentos() {
       }
     };
     
+    // Debug específico para Premium
+    if (userCurrentPlan === 'Premium') {
+      console.log('=== DEBUG PREMIUM getCurrentPlanData ===');
+      console.log('userCurrentPlan:', userCurrentPlan);
+      console.log('isAnnualPricing:', isAnnualPricing);
+      console.log('planPrices[Premium]:', planPrices['Premium']);
+    }
+    
     return {
       name: userCurrentPlan,
       ...planPrices[userCurrentPlan as keyof typeof planPrices]
+    };
+  };
+
+  // Função para obter dados da assinatura atual com desconto
+  const getCurrentSubscriptionData = () => {
+    // Sempre buscar do localStorage para ter dados atualizados
+    const currentSubscriptions = getSubscriptions();
+    
+    // Debug específico para Premium e Básico
+    if (userCurrentPlan === 'Premium' || userCurrentPlan === 'Básico') {
+      console.log(`=== DEBUG ${userCurrentPlan.toUpperCase()} SUBSCRIPTION ===`);
+      console.log('userCurrentPlan:', userCurrentPlan);
+      console.log('subscriptions state:', subscriptions);
+      console.log('currentSubscriptions from localStorage:', currentSubscriptions);
+      
+      // Verificar todas as assinaturas ativas
+      const activeSubscriptions = currentSubscriptions.filter(s => s.status === 'active');
+      console.log('activeSubscriptions:', activeSubscriptions);
+      
+      // Verificar se há assinatura do plano ativa
+      const planSubscriptions = currentSubscriptions.filter(s => s.planName === userCurrentPlan);
+      console.log(`${userCurrentPlan} subscriptions:`, planSubscriptions);
+    }
+    
+    const currentSubscription = currentSubscriptions.find(
+      s => s.status === 'active' && s.planName === userCurrentPlan
+    );
+    
+    // Debug específico para Premium e Básico
+    if (userCurrentPlan === 'Premium' || userCurrentPlan === 'Básico') {
+      console.log('currentSubscription found:', currentSubscription);
+      console.log('firstChargeAmountCents:', currentSubscription?.firstChargeAmountCents);
+      console.log('priceAnnualCents:', currentSubscription?.priceAnnualCents);
+      
+      if (currentSubscription) {
+        console.log('Calculated price from firstChargeAmountCents:', 
+          currentSubscription.firstChargeAmountCents ? 
+            formatBRL(currentSubscription.firstChargeAmountCents) : 'N/A');
+        console.log('Calculated original price from priceAnnualCents:', 
+          currentSubscription.priceAnnualCents ? 
+            formatBRL(currentSubscription.priceAnnualCents) : 'N/A');
+      }
+    }
+    
+    // Se não encontrou a assinatura no localStorage, tentar no estado local
+    if (!currentSubscription && subscriptions.length > 0) {
+      const stateSubscription = subscriptions.find(
+        s => s.status === 'active' && s.planName === userCurrentPlan
+      );
+      
+      if (stateSubscription) {
+        console.log('Found subscription in state instead of localStorage:', stateSubscription);
+        
+        // Debug específico para Básico e Premium
+        if (userCurrentPlan === 'Básico' || userCurrentPlan === 'Premium') {
+          console.log(`=== DEBUG ${userCurrentPlan.toUpperCase()} STATE SUBSCRIPTION ===`);
+          console.log('stateSubscription:', stateSubscription);
+          console.log('firstChargeAmountCents:', stateSubscription.firstChargeAmountCents);
+          console.log('priceAnnualCents:', stateSubscription.priceAnnualCents);
+        }
+        
+        return {
+          name: stateSubscription.planName,
+          price: stateSubscription.firstChargeAmountCents ? 
+            formatBRL(stateSubscription.firstChargeAmountCents) : 
+            getCurrentPlanData().price,
+          originalPrice: stateSubscription.priceAnnualCents ? 
+            formatBRL(stateSubscription.priceAnnualCents) : 
+            null,
+          discount: stateSubscription.firstChargeAmountCents && stateSubscription.priceAnnualCents && 
+            stateSubscription.firstChargeAmountCents < stateSubscription.priceAnnualCents ? 
+            formatBRL(stateSubscription.priceAnnualCents - stateSubscription.firstChargeAmountCents) : 
+            null,
+          billing: stateSubscription.billing,
+          nextRenewal: stateSubscription.renewsAt || getCurrentPlanData().nextRenewal
+        };
+      }
+    }
+    
+    if (currentSubscription) {
+      // Debug específico para Básico e Premium
+      if (userCurrentPlan === 'Básico' || userCurrentPlan === 'Premium') {
+        console.log(`=== DEBUG ${userCurrentPlan.toUpperCase()} LOCALSTORAGE SUBSCRIPTION ===`);
+        console.log('currentSubscription:', currentSubscription);
+        console.log('firstChargeAmountCents:', currentSubscription.firstChargeAmountCents);
+        console.log('priceAnnualCents:', currentSubscription.priceAnnualCents);
+        console.log('Calculated price:', currentSubscription.firstChargeAmountCents ? 
+          formatBRL(currentSubscription.firstChargeAmountCents) : 'N/A');
+        console.log('Calculated original price:', currentSubscription.priceAnnualCents ? 
+          formatBRL(currentSubscription.priceAnnualCents) : 'N/A');
+        
+        // Verificar se há desconto
+        if (currentSubscription.firstChargeAmountCents && currentSubscription.priceAnnualCents) {
+          const discount = currentSubscription.priceAnnualCents - currentSubscription.firstChargeAmountCents;
+          console.log('Calculated discount:', formatBRL(discount));
+        }
+      }
+      
+      return {
+        name: currentSubscription.planName,
+        price: currentSubscription.firstChargeAmountCents ? 
+          formatBRL(currentSubscription.firstChargeAmountCents) : 
+          getCurrentPlanData().price,
+        originalPrice: currentSubscription.priceAnnualCents ? 
+          formatBRL(currentSubscription.priceAnnualCents) : 
+          null,
+        discount: currentSubscription.firstChargeAmountCents && currentSubscription.priceAnnualCents && 
+          currentSubscription.firstChargeAmountCents < currentSubscription.priceAnnualCents ? 
+          formatBRL(currentSubscription.priceAnnualCents - currentSubscription.firstChargeAmountCents) : 
+          null,
+        billing: currentSubscription.billing,
+        nextRenewal: currentSubscription.renewsAt || getCurrentPlanData().nextRenewal
+      };
+    }
+    
+    // Retornar dados padrão com propriedades opcionais
+    const defaultData = getCurrentPlanData();
+    
+    // Debug específico para Básico e Premium quando não encontra assinatura
+    if (userCurrentPlan === 'Básico' || userCurrentPlan === 'Premium') {
+      console.log(`=== DEBUG ${userCurrentPlan.toUpperCase()} NO SUBSCRIPTION FOUND ===`);
+      console.log('Using default data:', defaultData);
+      console.log(`This means no active subscription was found for ${userCurrentPlan}`);
+    }
+    
+    return {
+      ...defaultData,
+      originalPrice: null,
+      discount: null
     };
   };
 
@@ -419,6 +576,7 @@ export default function Pagamentos() {
   // Funções do fluxo de assinatura
   const handleSubscribe = (plan: { name: string; price: string; billing: string }) => {
     setSelectedPlan(plan);
+    clearCoupon(); // Limpar cupom ao selecionar novo plano
     setAnimationDirection('right');
     
     // Se o plano é gratuito, abrir modal de downgrade
@@ -442,10 +600,60 @@ export default function Pagamentos() {
     }
   };
 
-  const handlePaymentSuccess = (planName: string, cardData?: any) => {
+  // Funções para gerenciar cupons
+  const handleCouponApplied = (couponResponse: CouponValidationResponse) => {
+    setAppliedCoupon(couponResponse);
+    setCouponCode(couponResponse.coupon?.code || '');
+  };
+
+  const handleCouponRemoved = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
+
+  const clearCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
+
+  const getCurrentBillingCycle = (): BillingCycle => {
+    return isAnnualPricing ? 'annual' : 'monthly';
+  };
+
+  const getCurrentPlanId = (): 'free' | 'basic' | 'premium' => {
+    if (!selectedPlan) return 'free';
+    const planName = selectedPlan.name.toLowerCase();
+    if (planName.includes('básico')) return 'basic';
+    if (planName.includes('premium')) return 'premium';
+    return 'free';
+  };
+
+  const getPlanPrices = () => {
+    if (!selectedPlan) return { monthlyCents: 0, annualCents: 0 };
+    
+    const plan = planData[selectedPlan.name as keyof typeof planData];
+    if (!plan) return { monthlyCents: 0, annualCents: 0 };
+    
+    return {
+      monthlyCents: toCents(plan.monthlyPrice),
+      annualCents: toCents(plan.monthlyPrice * 12 * (1 - (plan.annualDiscount || 0)))
+    };
+  };
+
+  const handlePaymentSuccess = (planName: string, cardData?: any, couponCode?: string) => {
     // Persistir plano atual
     saveCurrentPlan(planName);
     setUserCurrentPlan(planName);
+    
+    // Log do cupom se aplicado
+    if (couponCode) {
+      console.log('Cupom aplicado na assinatura:', couponCode);
+    }
+    
+    // Debug para verificar o cupom aplicado
+    console.log('=== DEBUG PAYMENT SUCCESS ===');
+    console.log('appliedCoupon:', appliedCoupon);
+    console.log('couponCode:', couponCode);
     
     let cardId = '';
     
@@ -484,6 +692,48 @@ export default function Pagamentos() {
     
     // Criar assinatura ativa vinculada ao cartão (se não for plano gratuito)
     if (planName !== 'Gratuito' && cardId) {
+      // Calcular preços com cupom para o plano específico
+      const plan = planData[planName as keyof typeof planData];
+      if (!plan) return;
+      
+      const annualCents = toCents(plan.monthlyPrice * 12 * (1 - (plan.annualDiscount || 0)));
+      
+      // Usar o cupom aplicado ou tentar encontrar pelo código
+      let coupon: Coupon | undefined = appliedCoupon?.valid ? appliedCoupon.coupon as Coupon : undefined;
+      
+      // Se não há cupom aplicado mas veio um código, tentar encontrar
+      if (!coupon && couponCode) {
+        console.log('=== DEBUG BUSCANDO CUPOM POR CÓDIGO ===');
+        console.log('couponCode:', couponCode);
+        
+        // Buscar o cupom pelo código
+        const foundCoupon = findCoupon(couponCode);
+        if (foundCoupon) {
+          console.log('Cupom encontrado:', foundCoupon);
+          
+          // Converter para o formato esperado pela função applyCoupon
+          coupon = {
+            code: foundCoupon.code,
+            kind: foundCoupon.percentOff ? 'percent' : 'fixed_cents',
+            value: foundCoupon.percentOff || foundCoupon.amountOff || 0
+          };
+          
+          console.log('Cupom convertido:', coupon);
+        } else {
+          console.log('Cupom não encontrado para o código:', couponCode);
+        }
+      }
+      
+      const { discountCents, totalCents } = applyCoupon(annualCents, coupon);
+      
+      console.log('=== DEBUG ASSINATURA ===');
+      console.log('Plano:', planName);
+      console.log('Preço anual (centavos):', annualCents);
+      console.log('Cupom aplicado:', coupon);
+      console.log('Desconto (centavos):', discountCents);
+      console.log('Total final (centavos):', totalCents);
+      console.log('Total final (reais):', formatBRL(totalCents));
+      
       const newSubscription: Subscription = {
         id: generateId(),
         name: `Assinatura ${planName}`,
@@ -493,13 +743,42 @@ export default function Pagamentos() {
         price: isAnnualPricing ? 
           (planName === 'Básico' ? 'R$ 23,92' : 'R$ 31,92') : 
           (planName === 'Básico' ? 'R$ 29,90' : 'R$ 39,90'),
-        billing: isAnnualPricing ? 'Anual' : 'Mensal'
+        billing: isAnnualPricing ? 'Anual' : 'Mensal',
+        // Dados do cupom
+        priceAnnualCents: annualCents,
+        firstChargeAmountCents: totalCents,
+        renewsAt: isAnnualPricing ? '15/01/2025' : '15/02/2024'
       };
+      
+      // Debug específico para Premium e Básico
+      if (planName === 'Premium' || planName === 'Básico') {
+        console.log(`=== DEBUG ${planName.toUpperCase()} SUBSCRIPTION CREATION ===`);
+        console.log('newSubscription:', newSubscription);
+        console.log('annualCents:', annualCents);
+        console.log('totalCents:', totalCents);
+        console.log('formatBRL(totalCents):', formatBRL(totalCents));
+        console.log('coupon applied:', coupon);
+        console.log('discountCents:', discountCents);
+      }
       
       // Adicionar assinatura ao localStorage
       const updatedSubscriptions = [...subscriptions, newSubscription];
+      
+      // Debug específico para Premium e Básico
+      if (planName === 'Premium' || planName === 'Básico') {
+        console.log(`=== DEBUG SAVING ${planName.toUpperCase()} SUBSCRIPTION ===`);
+        console.log('updatedSubscriptions:', updatedSubscriptions);
+        console.log('newSubscription being saved:', newSubscription);
+      }
+      
       saveSubscriptions(updatedSubscriptions);
       setSubscriptions(updatedSubscriptions);
+      
+      // Debug específico para Premium e Básico
+      if (planName === 'Premium' || planName === 'Básico') {
+        console.log(`=== DEBUG AFTER SETTING SUBSCRIPTIONS FOR ${planName.toUpperCase()} ===`);
+        console.log('setSubscriptions called with:', updatedSubscriptions);
+      }
     }
     
     setAnimationDirection('right');
@@ -511,6 +790,27 @@ export default function Pagamentos() {
       setSubscriptionFlow('plans');
       setSelectedPlan(null);
       setShowPlanSelector(false); // Fechar o seletor de planos para mostrar o card "Plano atual"
+      
+      // Debug específico para Premium e Básico
+      if (planName === 'Premium' || planName === 'Básico') {
+        console.log(`=== DEBUG AFTER TIMEOUT FOR ${planName.toUpperCase()} ===`);
+        console.log('userCurrentPlan should be:', planName);
+        console.log('subscriptions state should be updated');
+        
+        // Verificar se as assinaturas foram atualizadas
+        const currentSubscriptions = getSubscriptions();
+        console.log('Current subscriptions from localStorage:', currentSubscriptions);
+        
+        // Verificar se há assinatura do plano ativa
+        const planSubscription = currentSubscriptions.find(s => s.planName === planName && s.status === 'active');
+        console.log(`${planName} subscription found:`, planSubscription);
+        
+        // Forçar re-render do componente
+        setUserCurrentPlan(planName);
+        
+        // Forçar atualização das assinaturas do estado
+        setSubscriptions(currentSubscriptions);
+      }
     }, 3000);
   };
 
@@ -518,6 +818,7 @@ export default function Pagamentos() {
     setAnimationDirection('left');
     setSubscriptionFlow('plans');
     setSelectedPlan(null);
+    clearCoupon(); // Limpar cupom ao voltar para planos
   };
 
   // Funções para gerenciamento de cartões
@@ -815,6 +1116,7 @@ export default function Pagamentos() {
       try {
         // Simular chamada da API para atualizar método de pagamento
         console.log('Atualizando assinatura com cartão:', selectedPaymentMethodId);
+        console.log('Cupom aplicado:', appliedCoupon?.coupon?.code);
         
         // Se marcou para tornar padrão
         if (makeDefault) {
@@ -838,7 +1140,7 @@ export default function Pagamentos() {
         });
         
         // Fechar modal e atualizar plano
-        handlePaymentSuccess(selectedPlan.name);
+        handlePaymentSuccess(selectedPlan.name, undefined, appliedCoupon?.coupon?.code);
       } catch (error) {
         console.error('Erro ao atualizar assinatura:', error);
         setToast({
@@ -1038,19 +1340,48 @@ export default function Pagamentos() {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                           <div>
                             <label className="block text-sm font-medium text-gray-400 mb-2">Nome do Plano</label>
-                            <p className="text-base font-semibold text-white">{getCurrentPlanData().name}</p>
+                            <p className="text-base font-semibold text-white">{getCurrentSubscriptionData().name}</p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Valor</label>
-                            <p className="text-base font-semibold text-white">{getCurrentPlanData().price}</p>
+                            {(() => {
+                              const subscriptionData = getCurrentSubscriptionData();
+                              
+                              // Debug para verificar os valores
+                              console.log('=== DEBUG PLANO ATUAL ===');
+                              console.log('subscriptionData:', subscriptionData);
+
+                              return (
+                                <>
+                                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                                    {subscriptionData.originalPrice ? 'Pago hoje' : 'Valor'}
+                                  </label>
+                                  <div className="text-base font-semibold text-white">
+                                    {subscriptionData.price}
+                                  </div>
+                                  {/* Mostrar desconto aplicado se houver */}
+                                  {subscriptionData.originalPrice && subscriptionData.discount && (
+                                    <div className="mt-2 space-y-1">
+                                      <div className="text-sm text-gray-400 line-through">
+                                        Valor original: {subscriptionData.originalPrice}
+                                      </div>
+                                      <div className="text-sm text-green-400 font-medium">
+                                        Desconto: -{subscriptionData.discount}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-400 mb-2">Forma de Cobrança</label>
-                            <p className="text-base font-semibold text-white">{isAnnualPricing ? 'Anual' : 'Mensal'}</p>
+                            <p className="text-base font-semibold text-white">{getCurrentSubscriptionData().billing}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-400 mb-2">Próxima Renovação</label>
-                            <p className="text-base font-semibold text-white">{getCurrentPlanData().nextRenewal}</p>
+                            <p className="text-base font-semibold text-white">
+                              {getCurrentSubscriptionData().nextRenewal}
+                            </p>
                           </div>
                         </div>
                         
@@ -1131,6 +1462,13 @@ export default function Pagamentos() {
                           descontoAnual: plan?.annualDiscount || 0,
                         });
 
+                        // Cálculo unificado com cupom
+                        const { annualCents } = getPlanPrices();
+                        const annualPriceCents = annualCents;
+                        const coupon: Coupon | undefined = appliedCoupon?.valid ? appliedCoupon.coupon as Coupon : undefined;
+                        const { discountCents, totalCents } = applyCoupon(annualPriceCents, coupon);
+                        const monthlyCents = Math.round(totalCents / 12);
+
                         return (
                           <div className={`mb-8 transition-all duration-300`}>
                             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
@@ -1139,8 +1477,28 @@ export default function Pagamentos() {
                               {/* Total hoje */}
                               <div className="mb-4 rounded-lg bg-white/5 ring-1 ring-white/10 p-4">
                                 <div className="text-sm text-slate-300">Total hoje</div>
-                                <div className="text-2xl font-semibold">{brl(totalHoje)}</div>
-                                <div className="text-sm text-slate-400 mt-1">{secundario}</div>
+                                <div className="flex items-center gap-2">
+                                  {appliedCoupon?.valid && (
+                                    <span className="text-lg text-gray-400 line-through">{formatBRL(annualPriceCents)}</span>
+                                  )}
+                                  <div className="text-2xl font-semibold">
+                                    {formatBRL(totalCents)}
+                                  </div>
+                                </div>
+                                <div className="text-sm text-slate-400 mt-1">
+                                  Equivale a {formatBRL(monthlyCents)}/mês
+                                </div>
+                              </div>
+                              
+                              {/* Componente de Cupom */}
+                              <div className="mb-4">
+                                <CouponInput
+                                  planId={getCurrentPlanId()}
+                                  cycle={getCurrentBillingCycle()}
+                                  onApplied={handleCouponApplied}
+                                  onRemoved={handleCouponRemoved}
+                                  className="w-full"
+                                />
                               </div>
                               
                               <div className="space-y-4">
@@ -1159,8 +1517,26 @@ export default function Pagamentos() {
                                 </div>
                                 
                                 <div className="flex justify-between items-center py-3 border-b border-gray-600">
-                                  <span className="text-gray-300">Valor:</span>
-                                  <span className="text-white font-semibold">{brl(totalHoje)}</span>
+                                  <span className="text-gray-300">Valor original:</span>
+                                  <span className="text-white font-semibold line-through">{formatBRL(annualPriceCents)}</span>
+                                </div>
+                                
+                                {/* Linha de desconto do cupom */}
+                                {appliedCoupon?.valid && discountCents > 0 && (
+                                  <div className="flex justify-between items-center py-3 border-b border-gray-600">
+                                    <span className="text-gray-300">Cupom {appliedCoupon.coupon?.code}:</span>
+                                    <span className="text-red-400 font-semibold">
+                                      -{formatBRL(discountCents)}
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                {/* Total final */}
+                                <div className="flex justify-between items-center py-3 border-b border-gray-600">
+                                  <span className="text-gray-300">Total hoje:</span>
+                                  <span className="text-white font-semibold text-lg">
+                                    {formatBRL(totalCents)}
+                                  </span>
                                 </div>
                                 
                                 <div className="flex justify-between items-center py-3 border-b border-gray-600">
@@ -1220,7 +1596,7 @@ export default function Pagamentos() {
                                   onClick={handleFinalizeSubscription}
                                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer"
                                 >
-                                  {`Finalizar assinatura — ${brl(totalHoje)}`}
+                                  {`Finalizar assinatura — ${formatBRL(totalCents)}`}
                                 </button>
                               </div>
                               
@@ -1240,8 +1616,18 @@ export default function Pagamentos() {
                         <div className={`mb-8 transition-all duration-300`}>
                           <PaymentStep
                             plan={selectedPlan}
-                            onSuccess={handlePaymentSuccess}
+                            onSuccess={(planName, cardData, couponCode) => {
+                              handlePaymentSuccess(planName, cardData, couponCode);
+                              if (couponCode) {
+                                setCouponCode(couponCode);
+                              }
+                            }}
                             onBack={handleBackToPlans}
+                            planId={getCurrentPlanId()}
+                            billingCycle={getCurrentBillingCycle()}
+                            showCouponInput={true}
+                            priceMonthlyCents={getPlanPrices().monthlyCents}
+                            priceAnnualCents={getPlanPrices().annualCents}
                           />
                         </div>
                       )}

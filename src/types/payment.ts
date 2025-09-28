@@ -17,4 +17,8 @@ export type Subscription = {
   planName: string;
   price: string;
   billing: string;
+  // Novos campos para cupons
+  priceAnnualCents?: number;
+  firstChargeAmountCents?: number; // valor pago na primeira cobrança
+  renewsAt?: string; // data da próxima renovação
 };

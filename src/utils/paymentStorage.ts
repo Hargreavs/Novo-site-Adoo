@@ -138,7 +138,11 @@ export const initializeMockData = (): void => {
       paymentMethodId: 'card_1',
       planName: 'Premium',
       price: 'R$ 383,04',
-      billing: 'Anual'
+      billing: 'Anual',
+      // Dados do cupom (exemplo com 50% de desconto)
+      priceAnnualCents: 38304, // R$ 383,04
+      firstChargeAmountCents: 19152, // R$ 191,52 (50% de desconto)
+      renewsAt: '15/01/2025'
     }
   ];
   saveSubscriptions(mockSubscriptions);
