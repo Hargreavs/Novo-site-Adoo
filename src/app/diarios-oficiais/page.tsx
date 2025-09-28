@@ -50,7 +50,6 @@ export default function DiariosOficiais() {
   const [monitorSearchInput, setMonitorSearchInput] = useState('');
   const [monitorSearchTerms, setMonitorSearchTerms] = useState<string[]>([]);
   const [monitorSelectedDiarios, setMonitorSelectedDiarios] = useState<string[]>([]);
-  
   // Estados para o combobox da subaba monitorar
   const [monitorSuggestions, setMonitorSuggestions] = useState<SearchConfig[]>([]);
   const [monitorShowSuggestions, setMonitorShowSuggestions] = useState(false);
@@ -187,6 +186,57 @@ export default function DiariosOficiais() {
       }
     };
   }, [debounceTimer]);
+
+  // Função para normalizar texto (remover acentos, converter para minúsculas)
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[ç]/g, 'c')
+      .replace(/[ñ]/g, 'n');
+  };
+
+  // Função para buscar diários com busca inteligente
+  const getSearchResults = (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      return null; // Retorna null quando não há busca para mostrar a lista hierárquica
+    }
+
+    const normalizedSearchTerm = normalizeText(searchTerm);
+    const allDiarios: Array<{id: string, name: string, poder: string, subcategoria?: string}> = [];
+
+    // Coletar todos os diários com suas informações de poder e subcategoria
+    Object.entries(diariosPorPoder).forEach(([poder, subcategorias]) => {
+      if (Array.isArray(subcategorias)) {
+        // Para MP e DP (arrays diretos)
+        subcategorias.forEach(diario => {
+          allDiarios.push({
+            id: diario.id,
+            name: diario.name,
+            poder: poder
+          });
+        });
+      } else {
+        // Para poderes com subcategorias
+        Object.entries(subcategorias as Record<string, any[]>).forEach(([subcategoria, diariosList]) => {
+          diariosList.forEach(diario => {
+            allDiarios.push({
+              id: diario.id,
+              name: diario.name,
+              poder: poder,
+              subcategoria: subcategoria
+            });
+          });
+        });
+      }
+    });
+
+    // Filtrar diários que correspondem ao termo de busca
+    return allDiarios.filter(diario => 
+      normalizeText(diario.name).includes(normalizedSearchTerm)
+    );
+  };
   
   const [expandedCategories, setExpandedCategories] = useState<{[key: string]: boolean}>({});
   const [showCustomDateRange, setShowCustomDateRange] = useState(false);
@@ -1801,12 +1851,12 @@ export default function DiariosOficiais() {
           <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#3b82f6] to-[#8b5cf6] opacity-10 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
         </div>
         
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 md:pt-16 lg:pt-17">
+            <div className="text-center md:text-left">
             <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tight fade-in-delay-1">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Diários Oficiais</span>
             </h1>
-            <p className="mt-3 text-base text-gray-300 max-w-2xl mx-auto sm:text-lg sm:mt-4 fade-in-delay-2">
+            <p className="mt-0 text-base text-gray-300 max-w-2xl mx-auto md:mx-0 sm:text-lg fade-in-delay-2">
               Pesquise publicações, crie monitoramentos e navegue pelas edições oficiais.
             </p>
           </div>
@@ -2033,82 +2083,141 @@ export default function DiariosOficiais() {
                                 placeholder="Buscar em todos os diários..."
                                 className="input-standard text-base"
                               />
+                              {diarioSearchTerm && (
+                                <button
+                                  onClick={() => setDiarioSearchTerm('')}
+                                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           </div>
 
-                          {/* Lista de diários por poder */}
+                          {/* Lista de diários - Busca inteligente ou hierárquica */}
                           <div className="space-y-4 max-h-64 overflow-y-auto">
-                            {Object.entries(filteredDiariosPorPoder).map(([poder, subcategorias]) => {
-                              const totalDiarios = Array.isArray(subcategorias) 
-                                ? subcategorias.length 
-                                : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                            {(() => {
+                              const searchResults = getSearchResults(diarioSearchTerm);
                               
-                              return (
-                                <div key={poder}>
-                                  <button
-                                    onClick={() => togglePoder(poder, 'buscar')}
-                                    className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                                  >
-                                    <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
-                                    <span className="transform transition-transform duration-200 text-blue-400">
-                                      {expandedPoderes[poder] ? '−' : '+'}
-                                    </span>
-                                  </button>
-                                  
-                                  {expandedPoderes[poder] && (
-                                    <div className="ml-4 space-y-3 mt-2">
-                                      {Array.isArray(subcategorias) ? (
-                                        // Para MP e DP (arrays diretos)
-                                        <div className="space-y-2">
-                                          {subcategorias.map((diario) => (
-                                            <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                              <input
-                                                type="checkbox"
-                                                checked={selectedDiarios.includes(diario.id)}
-                                                onChange={() => handleDiarioSelect(diario.id)}
-                                                className="w-4 h-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-                                              />
-                                              <span className="flex-1">{diario.name}</span>
-                                            </label>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        // Para poderes com subcategorias
-                                        Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
-                                          <div key={subcategoria}>
-                                            <button
-                                              onClick={() => toggleSubcategoria(poder, subcategoria, 'buscar')}
-                                              className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                                            >
-                                              <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
-                                              <span className="transform transition-transform duration-200 text-blue-400">
-                                                {expandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
-                                              </span>
-                                            </button>
-                                            
-                                            {expandedSubcategorias[`${poder}-${subcategoria}`] && (
-                                              <div className="ml-4 space-y-1 mt-2">
-                                                {diariosList.map((diario: { id: string; name: string }) => (
-                                                  <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                                    <input
-                                                      type="checkbox"
-                                                      checked={selectedDiarios.includes(diario.id)}
-                                                      onChange={() => handleDiarioSelect(diario.id)}
-                                                      className=""
-                                                    />
-                                                    <span className="flex-1">{diario.name}</span>
-                                                  </label>
-                                                ))}
-                                              </div>
-                                            )}
+                              if (searchResults) {
+                                // Mostrar resultados de busca diretos
+                                if (searchResults.length === 0) {
+                                  return (
+                                    <div className="text-center py-8">
+                                      <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                      </svg>
+                                      <p className="text-gray-400 text-sm">Nenhum diário encontrado para "{diarioSearchTerm}"</p>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                      </svg>
+                                      <span className="text-sm text-blue-300 font-medium">
+                                        {searchResults.length} diário{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                                      </span>
+                                    </div>
+                                    {searchResults.map((diario) => (
+                                      <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedDiarios.includes(diario.id)}
+                                          onChange={() => handleDiarioSelect(diario.id)}
+                                          className="w-4 h-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                        />
+                                        <div className="flex-1">
+                                          <div className="font-medium">{diario.name}</div>
+                                          <div className="text-xs text-gray-400">
+                                            {diario.poder}
+                                            {diario.subcategoria && ` • ${diario.subcategoria}`}
                                           </div>
-                                        ))
+                                        </div>
+                                      </label>
+                                    ))}
+                                  </div>
+                                );
+                              } else {
+                                // Mostrar lista hierárquica normal
+                                return Object.entries(filteredDiariosPorPoder).map(([poder, subcategorias]) => {
+                                  const totalDiarios = Array.isArray(subcategorias) 
+                                    ? subcategorias.length 
+                                    : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                                  
+                                  return (
+                                    <div key={poder}>
+                                      <button
+                                        onClick={() => togglePoder(poder, 'buscar')}
+                                        className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                      >
+                                        <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
+                                        <span className="transform transition-transform duration-200 text-blue-400">
+                                          {expandedPoderes[poder] ? '−' : '+'}
+                                        </span>
+                                      </button>
+                                      
+                                      {expandedPoderes[poder] && (
+                                        <div className="ml-4 space-y-3 mt-2">
+                                          {Array.isArray(subcategorias) ? (
+                                            // Para MP e DP (arrays diretos)
+                                            <div className="space-y-2">
+                                              {subcategorias.map((diario) => (
+                                                <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={selectedDiarios.includes(diario.id)}
+                                                    onChange={() => handleDiarioSelect(diario.id)}
+                                                    className="w-4 h-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                                  />
+                                                  <span className="flex-1">{diario.name}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            // Para poderes com subcategorias
+                                            Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
+                                              <div key={subcategoria}>
+                                                <button
+                                                  onClick={() => toggleSubcategoria(poder, subcategoria, 'buscar')}
+                                                  className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                                >
+                                                  <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
+                                                  <span className="transform transition-transform duration-200 text-blue-400">
+                                                    {expandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
+                                                  </span>
+                                                </button>
+                                                
+                                                {expandedSubcategorias[`${poder}-${subcategoria}`] && (
+                                                  <div className="ml-4 space-y-1 mt-2">
+                                                    {diariosList.map((diario: { id: string; name: string }) => (
+                                                      <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                                        <input
+                                                          type="checkbox"
+                                                          checked={selectedDiarios.includes(diario.id)}
+                                                          onChange={() => handleDiarioSelect(diario.id)}
+                                                          className="w-4 h-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                                        />
+                                                        <span className="flex-1">{diario.name}</span>
+                                                      </label>
+                                                    ))}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
                                       )}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                  );
+                                });
+                              }
+                            })()}
                           </div>
                         </div>
 
@@ -2392,97 +2501,164 @@ export default function DiariosOficiais() {
                             <MagnifyingGlassIcon className="input-icon h-4 w-4 text-gray-400" />
                             <input
                               type="text"
+                              value={monitorDiarioSearchTerm}
+                              onChange={(e) => setMonitorDiarioSearchTerm(e.target.value)}
                               placeholder="Buscar diários..."
                               className="input-standard text-sm w-full"
                             />
+                            {monitorDiarioSearchTerm && (
+                              <button
+                                onClick={() => setMonitorDiarioSearchTerm('')}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        {/* Lista de diários com expansão/colapso */}
+                        {/* Lista de diários - Busca inteligente ou hierárquica */}
                         <div className="space-y-3 max-h-60 overflow-y-auto">
-                          {Object.entries(diariosPorPoder).map(([poder, subcategorias]) => {
-                            const totalDiarios = Array.isArray(subcategorias) 
-                              ? subcategorias.length 
-                              : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                          {(() => {
+                            const searchResults = getSearchResults(monitorDiarioSearchTerm);
                             
-                            return (
-                              <div key={poder}>
-                                <button
-                                  onClick={() => toggleMonitorPoder(poder)}
-                                  className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                                >
-                                  <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
-                                  <span className="transform transition-transform duration-200 text-blue-400">
-                                    {monitorExpandedPoderes[poder] ? '−' : '+'}
-                                  </span>
-                                </button>
-                                
-                                {monitorExpandedPoderes[poder] && (
-                                  <div className="ml-4 space-y-3 mt-2">
-                                    {Array.isArray(subcategorias) ? (
-                                      // Para MP e DP (arrays diretos)
-                                      <div className="space-y-2">
-                                        {subcategorias.map((diario) => (
-                                          <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                            <input
-                                              type="checkbox"
-                                              checked={monitorSelectedDiarios.includes(diario.id)}
-                                              onChange={() => {
-                                                if (monitorSelectedDiarios.includes(diario.id)) {
-                                                  setMonitorSelectedDiarios(prev => prev.filter(id => id !== diario.id));
-                                                } else {
-                                                  setMonitorSelectedDiarios(prev => [...prev, diario.id]);
-                                                }
-                                              }}
-                                              className="w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-                                            />
-                                            <span className="flex-1">{diario.name}</span>
-                                          </label>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      // Para poderes com subcategorias
-                                      Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
-                                        <div key={subcategoria}>
-                                          <button
-                                            onClick={() => toggleMonitorSubcategoria(poder, subcategoria)}
-                                            className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                                          >
-                                            <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
-                                            <span className="transform transition-transform duration-200 text-blue-400">
-                                              {monitorExpandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
-                                            </span>
-                                          </button>
-                                          
-                                          {monitorExpandedSubcategorias[`${poder}-${subcategoria}`] && (
-                                            <div className="ml-4 space-y-2 mt-2">
-                                              {diariosList.map((diario) => (
-                                                <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={monitorSelectedDiarios.includes(diario.id)}
-                                                    onChange={() => {
-                                                      if (monitorSelectedDiarios.includes(diario.id)) {
-                                                        setMonitorSelectedDiarios(prev => prev.filter(id => id !== diario.id));
-                                                      } else {
-                                                        setMonitorSelectedDiarios(prev => [...prev, diario.id]);
-                                                      }
-                                                    }}
-                                                    className="w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-                                                  />
-                                                  <span className="flex-1">{diario.name}</span>
-                                                </label>
-                                              ))}
-                                            </div>
-                                          )}
+                            if (searchResults) {
+                              // Mostrar resultados de busca diretos
+                              if (searchResults.length === 0) {
+                                return (
+                                  <div className="text-center py-8">
+                                    <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <p className="text-gray-400 text-sm">Nenhum diário encontrado para "{monitorDiarioSearchTerm}"</p>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <span className="text-sm text-blue-300 font-medium">
+                                      {searchResults.length} diário{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                  {searchResults.map((diario) => (
+                                    <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                      <input
+                                        type="checkbox"
+                                        checked={monitorSelectedDiarios.includes(diario.id)}
+                                        onChange={() => {
+                                          if (monitorSelectedDiarios.includes(diario.id)) {
+                                            setMonitorSelectedDiarios(prev => prev.filter(id => id !== diario.id));
+                                          } else {
+                                            setMonitorSelectedDiarios(prev => [...prev, diario.id]);
+                                          }
+                                        }}
+                                        className="w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="font-medium">{diario.name}</div>
+                                        <div className="text-xs text-gray-400">
+                                          {diario.poder}
+                                          {diario.subcategoria && ` • ${diario.subcategoria}`}
                                         </div>
-                                      ))
+                                      </div>
+                                    </label>
+                                  ))}
+                                </div>
+                              );
+                            } else {
+                              // Mostrar lista hierárquica normal
+                              return Object.entries(diariosPorPoder).map(([poder, subcategorias]) => {
+                                const totalDiarios = Array.isArray(subcategorias) 
+                                  ? subcategorias.length 
+                                  : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                                
+                                return (
+                                  <div key={poder}>
+                                    <button
+                                      onClick={() => toggleMonitorPoder(poder)}
+                                      className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                    >
+                                      <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
+                                      <span className="transform transition-transform duration-200 text-blue-400">
+                                        {monitorExpandedPoderes[poder] ? '−' : '+'}
+                                      </span>
+                                    </button>
+                                    
+                                    {monitorExpandedPoderes[poder] && (
+                                      <div className="ml-4 space-y-3 mt-2">
+                                        {Array.isArray(subcategorias) ? (
+                                          // Para MP e DP (arrays diretos)
+                                          <div className="space-y-2">
+                                            {subcategorias.map((diario) => (
+                                              <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={monitorSelectedDiarios.includes(diario.id)}
+                                                  onChange={() => {
+                                                    if (monitorSelectedDiarios.includes(diario.id)) {
+                                                      setMonitorSelectedDiarios(prev => prev.filter(id => id !== diario.id));
+                                                    } else {
+                                                      setMonitorSelectedDiarios(prev => [...prev, diario.id]);
+                                                    }
+                                                  }}
+                                                  className="w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                                />
+                                                <span className="flex-1">{diario.name}</span>
+                                              </label>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          // Para poderes com subcategorias
+                                          Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
+                                            <div key={subcategoria}>
+                                              <button
+                                                onClick={() => toggleMonitorSubcategoria(poder, subcategoria)}
+                                                className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                              >
+                                                <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
+                                                <span className="transform transition-transform duration-200 text-blue-400">
+                                                  {monitorExpandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
+                                                </span>
+                                              </button>
+                                              
+                                              {monitorExpandedSubcategorias[`${poder}-${subcategoria}`] && (
+                                                <div className="ml-4 space-y-2 mt-2">
+                                                  {diariosList.map((diario) => (
+                                                    <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                                      <input
+                                                        type="checkbox"
+                                                        checked={monitorSelectedDiarios.includes(diario.id)}
+                                                        onChange={() => {
+                                                          if (monitorSelectedDiarios.includes(diario.id)) {
+                                                            setMonitorSelectedDiarios(prev => prev.filter(id => id !== diario.id));
+                                                          } else {
+                                                            setMonitorSelectedDiarios(prev => [...prev, diario.id]);
+                                                          }
+                                                        }}
+                                                        className="w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                                      />
+                                                      <span className="flex-1">{diario.name}</span>
+                                                    </label>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
                                     )}
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                );
+                              });
+                            }
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -2873,86 +3049,145 @@ export default function DiariosOficiais() {
                             placeholder="Buscar em todos os diários..."
                             className="input-standard text-base"
                           />
+                          {navegarDiarioSearchTerm && (
+                            <button
+                              onClick={() => setNavegarDiarioSearchTerm('')}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      {/* Lista de diários por poder */}
+                      {/* Lista de diários - Busca inteligente ou hierárquica */}
                       <div className="space-y-4 max-h-64 overflow-y-auto">
-                        {Object.entries(filteredNavegarDiariosPorPoder).map(([poder, subcategorias]) => {
-                          const totalDiarios = Array.isArray(subcategorias) 
-                            ? subcategorias.length 
-                            : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                        {(() => {
+                          const searchResults = getSearchResults(navegarDiarioSearchTerm);
                           
-                          return (
-                            <div key={poder}>
-                              <button
-                                onClick={() => togglePoder(poder, 'navegar')}
-                                className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                              >
-                                <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
-                                <span className="transform transition-transform duration-200 text-blue-400">
-                                  {navegarExpandedPoderes[poder] ? '−' : '+'}
-                                </span>
-                              </button>
-                              
-                              {navegarExpandedPoderes[poder] && (
-                                <div className="ml-4 space-y-3 mt-2">
-                                  {Array.isArray(subcategorias) ? (
-                                    // Para MP e DP (arrays diretos)
-                                    <div className="space-y-2">
-                                      {subcategorias.map((diario) => (
-                                        <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                          <input
-                                            type="radio"
-                                            name="navegar-diario"
-                                            value={diario.id}
-                                            checked={selectedDiario === diario.id}
-                                            onChange={(e) => setSelectedDiario(e.target.value)}
-                                            className="w-4 h-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-                                          />
-                                          <span className="flex-1">{diario.name}</span>
-                                        </label>
-                                      ))}
+                          if (searchResults) {
+                            // Mostrar resultados de busca diretos
+                            if (searchResults.length === 0) {
+                              return (
+                                <div className="text-center py-8">
+                                  <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  </svg>
+                                  <p className="text-gray-400 text-sm">Nenhum diário encontrado para "{navegarDiarioSearchTerm}"</p>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  </svg>
+                                  <span className="text-sm text-blue-300 font-medium">
+                                    {searchResults.length} diário{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                {searchResults.map((diario) => (
+                                  <button
+                                    key={diario.id}
+                                    onClick={() => setSelectedDiario(diario.id)}
+                                    className={`w-full text-left p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+                                      selectedDiario === diario.id
+                                        ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                                        : 'border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                  >
+                                    <div className="font-medium">{diario.name}</div>
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      {diario.poder}
+                                      {diario.subcategoria && ` • ${diario.subcategoria}`}
                                     </div>
-                                  ) : (
-                                    // Para poderes com subcategorias
-                                    Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
-                                      <div key={subcategoria}>
-                                        <button
-                                          onClick={() => toggleSubcategoria(poder, subcategoria, 'navegar')}
-                                          className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                                        >
-                                          <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
-                                          <span className="transform transition-transform duration-200 text-blue-400">
-                                            {navegarExpandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
-                                          </span>
-                                        </button>
-                                        
-                                        {navegarExpandedSubcategorias[`${poder}-${subcategoria}`] && (
-                                          <div className="ml-4 space-y-1 mt-2">
-                                            {diariosList.map((diario: { id: string; name: string }) => (
-                                              <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                                <input
-                                                  type="radio"
-                                                  name="navegar-diario"
-                                                  value={diario.id}
-                                                  checked={selectedDiario === diario.id}
-                                                  onChange={(e) => setSelectedDiario(e.target.value)}
-                                                  className=""
-                                                />
-                                                <span className="flex-1">{diario.name}</span>
-                                              </label>
-                                            ))}
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          } else {
+                            // Mostrar lista hierárquica normal
+                            return Object.entries(filteredNavegarDiariosPorPoder).map(([poder, subcategorias]) => {
+                              const totalDiarios = Array.isArray(subcategorias) 
+                                ? subcategorias.length 
+                                : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                              
+                              return (
+                                <div key={poder}>
+                                  <button
+                                    onClick={() => togglePoder(poder, 'navegar')}
+                                    className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                  >
+                                    <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
+                                    <span className="transform transition-transform duration-200 text-blue-400">
+                                      {navegarExpandedPoderes[poder] ? '−' : '+'}
+                                    </span>
+                                  </button>
+                                  
+                                  {navegarExpandedPoderes[poder] && (
+                                    <div className="ml-4 space-y-3 mt-2">
+                                      {Array.isArray(subcategorias) ? (
+                                        // Para MP e DP (arrays diretos)
+                                        <div className="space-y-2">
+                                          {subcategorias.map((diario) => (
+                                            <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                              <input
+                                                type="radio"
+                                                name="navegar-diario"
+                                                value={diario.id}
+                                                checked={selectedDiario === diario.id}
+                                                onChange={(e) => setSelectedDiario(e.target.value)}
+                                                className="w-4 h-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                              />
+                                              <span className="flex-1">{diario.name}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        // Para poderes com subcategorias
+                                        Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
+                                          <div key={subcategoria}>
+                                            <button
+                                              onClick={() => toggleSubcategoria(poder, subcategoria, 'navegar')}
+                                              className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                            >
+                                              <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
+                                              <span className="transform transition-transform duration-200 text-blue-400">
+                                                {navegarExpandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
+                                              </span>
+                                            </button>
+                                            
+                                            {navegarExpandedSubcategorias[`${poder}-${subcategoria}`] && (
+                                              <div className="ml-4 space-y-1 mt-2">
+                                                {diariosList.map((diario: { id: string; name: string }) => (
+                                                  <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                                    <input
+                                                      type="radio"
+                                                      name="navegar-diario"
+                                                      value={diario.id}
+                                                      checked={selectedDiario === diario.id}
+                                                      onChange={(e) => setSelectedDiario(e.target.value)}
+                                                      className="w-4 h-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                                    />
+                                                    <span className="flex-1">{diario.name}</span>
+                                                  </label>
+                                                ))}
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
-                                      </div>
-                                    ))
+                                        ))
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                              );
+                            });
+                          }
+                        })()}
                       </div>
                     </div>
                     

@@ -346,6 +346,57 @@ export default function RadarIA() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSpotlight, setShowSpotlight] = useState(false);
 
+  // Função para normalizar texto (remover acentos, converter para minúsculas)
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[ç]/g, 'c')
+      .replace(/[ñ]/g, 'n');
+  };
+
+  // Função para buscar diários com busca inteligente
+  const getSearchResults = () => {
+    if (!diarioSearchTerm.trim()) {
+      return null; // Retorna null quando não há busca para mostrar a lista hierárquica
+    }
+
+    const searchTerm = normalizeText(diarioSearchTerm);
+    const allDiarios: Array<{id: string, name: string, poder: string, subcategoria?: string}> = [];
+
+    // Coletar todos os diários com suas informações de poder e subcategoria
+    Object.entries(diariosPorPoder).forEach(([poder, subcategorias]) => {
+      if (Array.isArray(subcategorias)) {
+        // Para MP e DP (arrays diretos)
+        subcategorias.forEach(diario => {
+          allDiarios.push({
+            id: diario.id,
+            name: diario.name,
+            poder: poder
+          });
+        });
+      } else {
+        // Para poderes com subcategorias
+        Object.entries(subcategorias as Record<string, any[]>).forEach(([subcategoria, diariosList]) => {
+          diariosList.forEach(diario => {
+            allDiarios.push({
+              id: diario.id,
+              name: diario.name,
+              poder: poder,
+              subcategoria: subcategoria
+            });
+          });
+        });
+      }
+    });
+
+    // Filtrar diários que correspondem ao termo de busca
+    return allDiarios.filter(diario => 
+      normalizeText(diario.name).includes(searchTerm)
+    );
+  };
+
   // Função para ativar spotlight nos contextos
   const handleCreateMonitoringClick = () => {
     setShowSpotlight(true);
@@ -1085,12 +1136,12 @@ export default function RadarIA() {
         </div>
         
         {/* Hero Section */}
-        <div className="mx-auto max-w-6xl py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl py-20 sm:py-28 md:py-32 lg:py-39">
           <div className="text-center mb-16">
             <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tight fade-in-delay-1">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300" style={{ lineHeight: '1.2', paddingBottom: '2px' }}>Radar IA</span>
             </h1>
-            <p className="mt-3 text-base text-gray-300 max-w-2xl mx-auto sm:text-lg sm:mt-4 fade-in-delay-2">
+            <p className="mt-0 text-base text-gray-300 max-w-2xl mx-auto sm:text-lg fade-in-delay-2">
               Configure seu monitoramento inteligente e receba apenas as publicações que importam para você
             </p>
           </div>
@@ -1130,7 +1181,7 @@ export default function RadarIA() {
             <div id="context-config-panel" className="bg-white/5 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-8 mb-8 fade-in-up">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-white">
-                  Configurar {contexts.find(c => c.id === selectedContext)?.title}
+                  Configurar monitoramento de contexto
                 </h3>
                 <button
                   onClick={() => {
@@ -1144,7 +1195,7 @@ export default function RadarIA() {
                     setValorRangeType('predefined');
                     setSelectedPredefinedRange('qualquer');
                   }}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1158,13 +1209,21 @@ export default function RadarIA() {
                   {/* Painel de Seleções Ativas */}
                   {selectedDiarios.length > 0 && (
                     <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/30 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <h4 className="text-sm font-medium text-blue-300">
-                          Diários Selecionados ({selectedDiarios.length})
-                        </h4>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <h4 className="text-sm font-medium text-blue-300">
+                            Diários Selecionados ({selectedDiarios.length})
+                          </h4>
+                        </div>
+                        <button
+                          onClick={() => setSelectedDiarios([])}
+                          className="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          Limpar tudo
+                        </button>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {selectedDiarios.map((diarioId) => {
@@ -1190,12 +1249,6 @@ export default function RadarIA() {
                           );
                         })}
                       </div>
-                      <button
-                        onClick={() => setSelectedDiarios([])}
-                        className="mt-3 text-xs text-gray-400 hover:text-white transition-colors"
-                      >
-                        Limpar todas as seleções
-                      </button>
                     </div>
                   )}
 
@@ -1217,84 +1270,143 @@ export default function RadarIA() {
                             value={diarioSearchTerm}
                             onChange={(e) => setDiarioSearchTerm(e.target.value)}
                             placeholder="Buscar em todos os diários..."
-                            className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-10 pr-10 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
+                          {diarioSearchTerm && (
+                            <button
+                              onClick={() => setDiarioSearchTerm('')}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      {/* Lista de diários por poder */}
+                      {/* Lista de diários - Busca inteligente ou hierárquica */}
                       <div className="space-y-4 max-h-64 overflow-y-auto">
-                        {Object.entries(filteredDiariosPorPoder).map(([poder, subcategorias]) => {
-                          const totalDiarios = Array.isArray(subcategorias) 
-                            ? subcategorias.length 
-                            : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                        {(() => {
+                          const searchResults = getSearchResults();
                           
-                          return (
-                            <div key={poder}>
-                              <button
-                                onClick={() => togglePoder(poder)}
-                                className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200"
-                              >
-                                <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
-                                <span className="transform transition-transform duration-200 text-blue-400">
-                                  {expandedPoderes[poder] ? '−' : '+'}
-                                </span>
-                              </button>
-                              
-                              {expandedPoderes[poder] && (
-                                <div className="ml-4 space-y-3 mt-2">
-                                  {Array.isArray(subcategorias) ? (
-                                    // Para MP e DP (arrays diretos)
-                                    <div className="space-y-2">
-                                      {subcategorias.map((diario) => (
-                                        <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                          <input
-                                            type="checkbox"
-                                            checked={selectedDiarios.includes(diario.id)}
-                                            onChange={() => handleDiarioSelect(diario.id)}
-                                            className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                                          />
-                                          <span className="flex-1">{diario.name}</span>
-                                        </label>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    // Para poderes com subcategorias
-                                    Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
-                                      <div key={subcategoria}>
-                                        <button
-                                          onClick={() => toggleSubcategoria(poder, subcategoria)}
-                                          className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200"
-                                        >
-                                          <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
-                                          <span className="transform transition-transform duration-200 text-blue-400">
-                                            {expandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
-                                          </span>
-                                        </button>
-                                        
-                                        {expandedSubcategorias[`${poder}-${subcategoria}`] && (
-                                          <div className="ml-4 space-y-1 mt-2">
-                                            {diariosList.map((diario: { id: string; name: string }) => (
-                                              <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
-                                                <input
-                                                  type="checkbox"
-                                                  checked={selectedDiarios.includes(diario.id)}
-                                                  onChange={() => handleDiarioSelect(diario.id)}
-                                                  className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                                                />
-                                                <span className="flex-1">{diario.name}</span>
-                                              </label>
-                                            ))}
-                                          </div>
-                                        )}
+                          if (searchResults) {
+                            // Mostrar resultados de busca diretos
+                            if (searchResults.length === 0) {
+                              return (
+                                <div className="text-center py-8">
+                                  <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  </svg>
+                                  <p className="text-gray-400 text-sm">Nenhum diário encontrado para "{diarioSearchTerm}"</p>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  </svg>
+                                  <span className="text-sm text-blue-300 font-medium">
+                                    {searchResults.length} diário{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                {searchResults.map((diario) => (
+                                  <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedDiarios.includes(diario.id)}
+                                      onChange={() => handleDiarioSelect(diario.id)}
+                                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                                    />
+                                    <div className="flex-1">
+                                      <div className="font-medium">{diario.name}</div>
+                                      <div className="text-xs text-gray-400">
+                                        {diario.poder}
+                                        {diario.subcategoria && ` • ${diario.subcategoria}`}
                                       </div>
-                                    ))
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            );
+                          } else {
+                            // Mostrar lista hierárquica normal
+                            return Object.entries(filteredDiariosPorPoder).map(([poder, subcategorias]) => {
+                              const totalDiarios = Array.isArray(subcategorias) 
+                                ? subcategorias.length 
+                                : Object.values(subcategorias as Record<string, any[]>).flat().length;
+                              
+                              return (
+                                <div key={poder}>
+                                  <button
+                                    onClick={() => togglePoder(poder)}
+                                    className="flex items-center justify-between w-full text-left py-3 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                  >
+                                    <span className="font-semibold text-sm">{poder} ({totalDiarios})</span>
+                                    <span className="transform transition-transform duration-200 text-blue-400">
+                                      {expandedPoderes[poder] ? '−' : '+'}
+                                    </span>
+                                  </button>
+                                  
+                                  {expandedPoderes[poder] && (
+                                    <div className="ml-4 space-y-3 mt-2">
+                                      {Array.isArray(subcategorias) ? (
+                                        // Para MP e DP (arrays diretos)
+                                        <div className="space-y-2">
+                                          {subcategorias.map((diario) => (
+                                            <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedDiarios.includes(diario.id)}
+                                                onChange={() => handleDiarioSelect(diario.id)}
+                                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                                              />
+                                              <span className="flex-1">{diario.name}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        // Para poderes com subcategorias
+                                        Object.entries(subcategorias as Record<string, any[]>).map(([subcategoria, diariosList]) => (
+                                          <div key={subcategoria}>
+                                            <button
+                                              onClick={() => toggleSubcategoria(poder, subcategoria)}
+                                              className="flex items-center justify-between w-full text-left py-2 px-3 text-gray-300 hover:text-white font-medium bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 cursor-pointer"
+                                            >
+                                              <span className="font-medium text-xs">{subcategoria} ({diariosList.length})</span>
+                                              <span className="transform transition-transform duration-200 text-blue-400">
+                                                {expandedSubcategorias[`${poder}-${subcategoria}`] ? '−' : '+'}
+                                              </span>
+                                            </button>
+                                            
+                                            {expandedSubcategorias[`${poder}-${subcategoria}`] && (
+                                              <div className="ml-4 space-y-1 mt-2">
+                                                {diariosList.map((diario: { id: string; name: string }) => (
+                                                  <label key={diario.id} className="flex items-center gap-3 py-2 px-3 text-sm text-gray-300 hover:text-white cursor-pointer rounded-lg hover:bg-white/5 transition-all duration-200">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={selectedDiarios.includes(diario.id)}
+                                                      onChange={() => handleDiarioSelect(diario.id)}
+                                                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                                                    />
+                                                    <span className="flex-1">{diario.name}</span>
+                                                  </label>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                              );
+                            });
+                          }
+                        })()}
                       </div>
                     </div>
                     <p className="mt-2 text-xs text-gray-400">
@@ -1545,8 +1657,8 @@ export default function RadarIA() {
                 <button
                   id="btn-criar-monitoramento"
                   onClick={handleCreateMonitoring}
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || selectedDiarios.length === 0}
+                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isLoading 
                     ? (editingMonitoring ? 'Atualizando monitoramento...' : 'Criando monitoramento...') 
@@ -1689,7 +1801,7 @@ export default function RadarIA() {
                 </div>
                 <button
                   onClick={closeDrawer}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
