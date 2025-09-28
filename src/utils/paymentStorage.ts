@@ -111,37 +111,37 @@ export const initializeMockData = (): void => {
   localStorage.removeItem('payment_methods');
   localStorage.removeItem('current_plan');
   
-  // Sempre definir plano como Premium para demonstrar o modal de troca
-  saveCurrentPlan('Premium');
+  // Configurar usuário como assinante do plano básico anual
+  saveCurrentPlan('Básico');
   
-  // Criar cartões mock
+  // Criar cartão mock para o usuário alex.augustus2501@gmail.com
   const mockPaymentMethods: PaymentMethod[] = [
     {
       id: 'card_1',
       brand: 'VISA',
-      last4: '1234',
+      last4: '5555',
       isDefault: true,
-      number: '4111111111111234',
-      name: 'João Silva',
-      expiry: '12/28',
+      number: '4444444444445555',
+      name: 'RAFAEL XIMENES',
+      expiry: '01/26',
       cvc: '123'
     }
   ];
   savePaymentMethods(mockPaymentMethods);
   
-  // Criar assinaturas mock vinculadas ao cartão padrão
+  // Criar assinatura mock do plano básico anual
   const mockSubscriptions: Subscription[] = [
     {
       id: 'sub_1',
-      name: 'Assinatura Premium',
+      name: 'Assinatura Básico',
       status: 'active',
       paymentMethodId: 'card_1',
-      planName: 'Premium',
-      price: 'R$ 383,04',
+      planName: 'Básico',
+      price: 'R$ 277,04',
       billing: 'Anual',
-      // Dados do cupom (exemplo com 50% de desconto)
-      priceAnnualCents: 38304, // R$ 383,04
-      firstChargeAmountCents: 19152, // R$ 191,52 (50% de desconto)
+      // Dados do plano básico anual
+      priceAnnualCents: 27704, // R$ 277,04
+      firstChargeAmountCents: 27704, // R$ 277,04 (sem desconto)
       renewsAt: '15/01/2025'
     }
   ];

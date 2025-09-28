@@ -18,6 +18,8 @@ import CouponInput from '@/components/billing/CouponInput';
 import { formatBRL, toCents } from '@/utils/money';
 import { applyCoupon, Coupon } from '@/pricing/coupon';
 import { findCoupon } from '@/lib/coupons';
+import SuccessBadge from '@/components/SuccessBadge';
+import ErrorBadge from '@/components/ErrorBadge';
 import { 
   getPaymentMethods, 
   savePaymentMethods, 
@@ -28,8 +30,10 @@ import {
   updateSubscriptionPaymentMethod,
   getCurrentPlan,
   saveCurrentPlan,
-  generateId
+  generateId,
+  initializeMockData
 } from '@/utils/paymentStorage';
+import { saveSubscription } from '@/lib/billing/subscription';
 import jsPDF from 'jspdf';
 
 // Componente CardPickerPopover
@@ -153,7 +157,8 @@ export default function Pagamentos() {
   const [userCurrentPlan, setUserCurrentPlan] = useState('Gratuito'); // Plano atual do usuário
   
   // Estados do fluxo de assinatura
-  const [subscriptionFlow, setSubscriptionFlow] = useState<'plans' | 'summary' | 'addCard' | 'processing' | 'success'>('plans');
+  const [subscriptionFlow, setSubscriptionFlow] = useState<'plans' | 'summary' | 'addCard' | 'processing' | 'success' | 'error'>('plans');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<{
     name: string;
     price: string;
@@ -242,9 +247,8 @@ export default function Pagamentos() {
 
   // Carregar dados persistidos na inicialização
   useEffect(() => {
-    // Limpar dados mock do localStorage para testes
-    localStorage.removeItem('payment_methods');
-    localStorage.removeItem('subscriptions');
+    // Inicializar dados mock
+    initializeMockData();
     
     // Carregar dados do localStorage
     const savedPaymentMethods = getPaymentMethods();
@@ -656,6 +660,7 @@ export default function Pagamentos() {
     console.log('couponCode:', couponCode);
     
     let cardId = '';
+    let totalCents = 0; // Inicializar totalCents aqui
     
     // Se veio dados do cartão, salvar
     if (cardData) {
@@ -724,7 +729,8 @@ export default function Pagamentos() {
         }
       }
       
-      const { discountCents, totalCents } = applyCoupon(annualCents, coupon);
+      const { discountCents, totalCents: calculatedTotalCents } = applyCoupon(annualCents, coupon);
+      totalCents = calculatedTotalCents; // Atualizar totalCents aqui
       
       console.log('=== DEBUG ASSINATURA ===');
       console.log('Plano:', planName);
@@ -781,37 +787,83 @@ export default function Pagamentos() {
       }
     }
     
+    // Salvar no estado global de assinatura
+    const planId = planName === 'Básico' ? 'basic' : planName === 'Premium' ? 'premium' : 'free';
+    const cycle = isAnnualPricing ? 'annual' : 'monthly';
+    
+    // Calcular data de renovação
+    const nextRenewal = new Date();
+    if (cycle === 'annual') {
+      nextRenewal.setFullYear(nextRenewal.getFullYear() + 1);
+    } else {
+      nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+    }
+    
+    saveSubscription({
+      planId: planId as 'basic' | 'premium' | 'free',
+      cycle: cycle as 'monthly' | 'annual',
+      status: 'active',
+      nextRenewalISO: nextRenewal.toISOString(),
+      firstChargeAmountCents: planName !== 'Gratuito' ? totalCents : undefined,
+      updatedAtISO: new Date().toISOString(),
+    });
+    
     setAnimationDirection('right');
     setSubscriptionFlow('success');
+  };
+
+  // Função chamada quando a animação termina (sem redirecionamento automático)
+  const handleAnimationComplete = () => {
+    console.log('=== DEBUG ANIMATION COMPLETE ===');
+    console.log('Animation finished, waiting for user to close manually');
+    // Não redireciona automaticamente - usuário deve clicar no X
+  };
+
+  // Função para fechar a tela de sucesso manualmente
+  const handleCloseSuccess = () => {
+    console.log('=== DEBUG CLOSING SUCCESS SCREEN ===');
+    setAnimationDirection('left');
+    setSubscriptionFlow('plans');
+    setSelectedPlan(null);
+    setShowPlanSelector(false); // Fechar o seletor de planos para mostrar o card "Plano atual"
     
-    // Simular atualização do plano atual e fechar seletor
-    setTimeout(() => {
-      setAnimationDirection('left');
-      setSubscriptionFlow('plans');
-      setSelectedPlan(null);
-      setShowPlanSelector(false); // Fechar o seletor de planos para mostrar o card "Plano atual"
+    // Debug específico para Premium e Básico
+    if (userCurrentPlan === 'Premium' || userCurrentPlan === 'Básico') {
+      console.log(`=== DEBUG AFTER CLOSING SUCCESS FOR ${userCurrentPlan.toUpperCase()} ===`);
+      console.log('userCurrentPlan should be:', userCurrentPlan);
+      console.log('subscriptions state should be updated');
       
-      // Debug específico para Premium e Básico
-      if (planName === 'Premium' || planName === 'Básico') {
-        console.log(`=== DEBUG AFTER TIMEOUT FOR ${planName.toUpperCase()} ===`);
-        console.log('userCurrentPlan should be:', planName);
-        console.log('subscriptions state should be updated');
-        
-        // Verificar se as assinaturas foram atualizadas
-        const currentSubscriptions = getSubscriptions();
-        console.log('Current subscriptions from localStorage:', currentSubscriptions);
-        
-        // Verificar se há assinatura do plano ativa
-        const planSubscription = currentSubscriptions.find(s => s.planName === planName && s.status === 'active');
-        console.log(`${planName} subscription found:`, planSubscription);
-        
-        // Forçar re-render do componente
-        setUserCurrentPlan(planName);
-        
-        // Forçar atualização das assinaturas do estado
-        setSubscriptions(currentSubscriptions);
-      }
-    }, 3000);
+      // Verificar se as assinaturas foram atualizadas
+      const currentSubscriptions = getSubscriptions();
+      console.log('Current subscriptions from localStorage:', currentSubscriptions);
+      
+      // Verificar se há assinatura do plano ativa
+      const planSubscription = currentSubscriptions.find(s => s.planName === userCurrentPlan && s.status === 'active');
+      console.log(`${userCurrentPlan} subscription found:`, planSubscription);
+      
+      // Forçar re-render do componente
+      setUserCurrentPlan(userCurrentPlan);
+      
+      // Forçar atualização das assinaturas do estado
+      setSubscriptions(currentSubscriptions);
+    }
+    
+    console.log('Redirecionamento após fechamento manual');
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.log('=== PAYMENT ERROR ===');
+    console.log('Error:', error);
+    setPaymentError(error);
+    setSubscriptionFlow('error');
+  };
+
+  const handleCloseError = () => {
+    console.log('=== CLOSING ERROR SCREEN ===');
+    setSubscriptionFlow('plans');
+    setPaymentError(null);
+    setSelectedPlan(null);
+    setShowPlanSelector(false);
   };
 
   const handleBackToPlans = () => {
@@ -1622,6 +1674,7 @@ export default function Pagamentos() {
                                 setCouponCode(couponCode);
                               }
                             }}
+                            onError={handlePaymentError}
                             onBack={handleBackToPlans}
                             planId={getCurrentPlanId()}
                             billingCycle={getCurrentBillingCycle()}
@@ -1634,20 +1687,129 @@ export default function Pagamentos() {
 
                       {/* Step de Sucesso */}
                       {subscriptionFlow === 'success' && selectedPlan && (
-                        <div className={`mb-8 transition-all duration-300`}>
-                          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6 text-center">
-                            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <div className={`mb-8 transition-all duration-500 ease-out`}>
+                          <div className="relative bg-gradient-to-br from-green-500/20 via-green-600/10 to-green-700/20 border border-green-500/40 rounded-2xl p-8 text-center overflow-hidden">
+                            {/* Botão de fechar */}
+                            <button
+                              onClick={handleCloseSuccess}
+                              className="absolute top-4 right-4 z-20 w-8 h-8 bg-gray-800/50 hover:bg-gray-700/70 rounded-full flex items-center justify-center transition-all duration-200 group cursor-pointer"
+                              aria-label="Fechar tela de sucesso"
+                            >
+                              <svg 
+                                className="w-4 h-4 text-gray-300 group-hover:text-white transition-colors duration-200" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  strokeWidth={2} 
+                                  d="M6 18L18 6M6 6l12 12" 
+                                />
                               </svg>
+                            </button>
+
+                            {/* Efeito de brilho de fundo */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-400/5 to-transparent animate-pulse"></div>
+                            
+                            {/* Partículas de fundo */}
+                            <div className="absolute inset-0 overflow-hidden">
+                              <div className="absolute top-4 left-4 w-2 h-2 bg-green-400/30 rounded-full animate-ping" style={{ animationDelay: '0s' }}></div>
+                              <div className="absolute top-8 right-12 w-1 h-1 bg-green-300/40 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                              <div className="absolute bottom-6 left-8 w-1.5 h-1.5 bg-green-500/30 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+                              <div className="absolute bottom-4 right-8 w-1 h-1 bg-green-400/40 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">Assinatura Ativada!</h3>
-                            <p className="text-gray-300 mb-4">
-                              Seu plano <strong>{selectedPlan.name}</strong> foi ativado com sucesso.
-                            </p>
-                            <p className="text-sm text-gray-400">
-                              Redirecionando para a seleção de planos...
-                            </p>
+
+                            <div className="relative z-10">
+                              <div className="mb-6">
+                                <SuccessBadge 
+                                  size={140} 
+                                  className="mx-auto" 
+                                  onComplete={handleAnimationComplete}
+                                />
+                              </div>
+                              
+                              <h3 className="text-3xl font-bold text-white mb-4 bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent animate-pulse">
+                                Assinatura Ativada!
+                              </h3>
+                              
+                              <p className="text-gray-200 mb-6 text-lg leading-relaxed">
+                                Seu plano <strong className="text-green-300 font-semibold">{selectedPlan.name}</strong> foi ativado com sucesso.
+                              </p>
+                              
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tela de Erro */}
+                      {subscriptionFlow === 'error' && selectedPlan && (
+                        <div className={`mb-8 transition-all duration-500 ease-out`}>
+                          <div className="relative bg-gradient-to-br from-red-500/20 via-red-600/10 to-red-700/20 border border-red-500/40 rounded-2xl p-8 text-center overflow-hidden">
+                            {/* Botão de fechar */}
+                            <button
+                              onClick={handleCloseError}
+                              className="absolute top-4 right-4 z-20 w-8 h-8 bg-gray-800/50 hover:bg-gray-700/70 rounded-full flex items-center justify-center transition-all duration-200 group cursor-pointer"
+                              aria-label="Fechar tela de erro"
+                            >
+                              <svg 
+                                className="w-4 h-4 text-gray-300 group-hover:text-white transition-colors duration-200" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  strokeWidth={2} 
+                                  d="M6 18L18 6M6 6l12 12" 
+                                />
+                              </svg>
+                            </button>
+
+                            {/* Efeito de brilho de fundo */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-400/5 to-transparent animate-pulse"></div>
+                            
+                            {/* Partículas de fundo */}
+                            <div className="absolute inset-0 overflow-hidden">
+                              <div className="absolute top-4 left-4 w-2 h-2 bg-red-400/30 rounded-full animate-ping" style={{ animationDelay: '0s' }}></div>
+                              <div className="absolute top-8 right-12 w-1 h-1 bg-red-300/40 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                              <div className="absolute bottom-6 left-8 w-1.5 h-1.5 bg-red-500/30 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+                              <div className="absolute bottom-4 right-8 w-1 h-1 bg-red-400/40 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+                            </div>
+
+                            <div className="relative z-10">
+                              <div className="mb-6">
+                                <ErrorBadge 
+                                  size={140} 
+                                  className="mx-auto" 
+                                  onComplete={() => {
+                                    console.log('=== ERROR BADGE ANIMATION COMPLETE ===');
+                                  }}
+                                />
+                              </div>
+                              
+                              <h3 className="text-3xl font-bold text-white mb-4 bg-gradient-to-r from-red-400 to-red-300 bg-clip-text text-transparent animate-pulse">
+                                Pagamento com Problema
+                              </h3>
+                              
+                              <p className="text-gray-200 mb-6 text-lg leading-relaxed">
+                                {paymentError || 'Não conseguimos processar a cobrança. Verifique os dados do cartão ou tente outro método.'}
+                              </p>
+
+                              <div className="flex items-center justify-center">
+                                <button
+                                  onClick={() => {
+                                    setSubscriptionFlow('addCard');
+                                    setPaymentError(null);
+                                  }}
+                                  className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors duration-200 cursor-pointer"
+                                >
+                                  Tentar Novamente
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}

@@ -14,6 +14,7 @@ interface PaymentStepProps {
     billing: string;
   };
   onSuccess: (planName: string, cardData?: any, couponCode?: string) => void;
+  onError?: (error: string) => void;
   onBack: () => void;
   initialCardData?: {
     number: string;
@@ -34,7 +35,7 @@ interface PaymentStepProps {
   priceAnnualCents?: number;
 }
 
-export default function PaymentStep({ plan, onSuccess, onBack, initialCardData, customTitle, hidePlanSummary, planId, billingCycle, showCouponInput, priceMonthlyCents, priceAnnualCents }: PaymentStepProps) {
+export default function PaymentStep({ plan, onSuccess, onError, onBack, initialCardData, customTitle, hidePlanSummary, planId, billingCycle, showCouponInput, priceMonthlyCents, priceAnnualCents }: PaymentStepProps) {
   // Detectar tipo de cartão baseado no número
   const detectCardType = (number: string) => {
     const cleanNumber = number.replace(/\s/g, '');
@@ -309,21 +310,58 @@ export default function PaymentStep({ plan, onSuccess, onBack, initialCardData, 
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const cleanNumber = cardData.number.replace(/\s/g, '');
+    const cleanName = cardData.name.trim().replace(/\s+/g, ' ').toUpperCase();
     
-    // Verificar se é um dos cartões mock
-    const mockCards = ['4444444444445555', '5555555555556666', '5555555555554444'];
+    // Cartões mock específicos com validação de dados
+    const successCard = {
+      number: '4444444444445555',
+      name: 'RAFAEL XIMENES',
+      expiry: '01/26',
+      cvc: '123'
+    };
     
-    if (mockCards.includes(cleanNumber)) {
+    const errorCard = {
+      number: '5555555555556666',
+      name: 'RAFAEL XIMENES',
+      expiry: '01/27',
+      cvc: '123'
+    };
+    
+    // Verificar se é o cartão de sucesso
+    if (cleanNumber === successCard.number && 
+        cleanName === successCard.name && 
+        cardData.expiry === successCard.expiry && 
+        cardData.cvc === successCard.cvc) {
       // Sucesso - passar dados do cartão e cupom
       onSuccess(plan.name, {
         number: cleanNumber,
-        name: cardData.name.trim().replace(/\s+/g, ' '),
+        name: cleanName,
         expiry: cardData.expiry,
         cvc: cardData.cvc,
         brand: detectCardType(cleanNumber) === 'mastercard' ? 'mastercard' : 'visa'
       }, appliedCoupon?.coupon?.code);
-    } else {
-      // Falha
+    } 
+    // Verificar se é o cartão de erro
+    else if (cleanNumber === errorCard.number && 
+             cleanName === errorCard.name && 
+             cardData.expiry === errorCard.expiry && 
+             cardData.cvc === errorCard.cvc) {
+      // Erro - chamar callback de erro
+      onError?.('Pagamento recusado. Verifique os dados do cartão ou tente outro método.');
+    } 
+    // Outros cartões mock (compatibilidade)
+    else if (['4444444444445555', '5555555555556666', '5555555555554444'].includes(cleanNumber)) {
+      // Sucesso para outros cartões mock
+      onSuccess(plan.name, {
+        number: cleanNumber,
+        name: cleanName,
+        expiry: cardData.expiry,
+        cvc: cardData.cvc,
+        brand: detectCardType(cleanNumber) === 'mastercard' ? 'mastercard' : 'visa'
+      }, appliedCoupon?.coupon?.code);
+    } 
+    else {
+      // Falha - cartão não reconhecido
       setErrors({ number: 'Use um dos cartões de teste: 4444 4444 4444 5555, 5555 5555 5555 6666 ou 5555 5555 5555 4444' });
     }
     
