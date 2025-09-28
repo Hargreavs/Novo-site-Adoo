@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface UserSettingsModalProps {
 
 export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
   const { user, updateUser } = useAuth();
+  const { sub, loaded } = useSubscription();
   const [activeTab, setActiveTab] = useState('geral');
   const [isMounted, setIsMounted] = useState(false);
   
@@ -518,6 +520,21 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
 
   const getUserInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  // Helper para obter o nome do plano
+  const getPlanName = (planId: string) => {
+    const planNames = {
+      'free': 'gratuito',
+      'basic': 'básico',
+      'premium': 'premium'
+    };
+    return planNames[planId as keyof typeof planNames] || 'gratuito';
+  };
+
+  // Helper para verificar se um plano está ativo
+  const isPlanActive = (planId: string) => {
+    return loaded && sub?.status === 'active' && sub?.planId === planId;
   };
 
   // Verificar se o componente está montado
@@ -1295,19 +1312,45 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                     </div>
                     <div className="flex-1">
                       <h4 className="text-base font-bold text-white">
-                        Você está atualmente no{' '}
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-                          plano gratuito
-                        </span>
+                        {!loaded ? (
+                          'Carregando...'
+                        ) : sub?.status === 'active' ? (
+                          <>
+                            Você está atualmente no{' '}
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+                              plano {getPlanName(sub.planId)} {sub.cycle === 'annual' ? 'anual' : 'mensal'}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            Você está atualmente no{' '}
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+                              plano gratuito
+                            </span>
+                          </>
+                        )}
                       </h4>
-                      <p className="text-sm text-gray-300">Explore nossos planos e escolha o que melhor se adapta às suas necessidades</p>
+                      <p className="text-sm text-gray-300">
+                        {!loaded ? (
+                          'Carregando informações...'
+                        ) : sub?.status === 'active' ? (
+                          'Gerencie sua assinatura ou altere seu plano quando quiser'
+                        ) : (
+                          'Explore nossos planos e escolha o que melhor se adapta às suas necessidades'
+                        )}
+                      </p>
+                      {sub?.status === 'active' && sub?.nextRenewalISO && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Próxima renovação: {new Date(sub.nextRenewalISO).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
                     </div>
                     <div className="ml-4">
                       <button 
                         onClick={() => window.location.href = '/pagamentos'}
                         className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer"
                       >
-                        Gerencia sua assinatura
+                        {!loaded ? 'Carregando...' : sub?.status === 'active' ? 'Gerenciar assinatura' : 'Gerenciar assinatura'}
                       </button>
                     </div>
                   </div>
@@ -1430,8 +1473,15 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                       </li>
                     </ul>
                     <div className="mt-4">
-                      <button className="w-full px-3 py-2 bg-gray-600 text-white text-xs font-medium rounded-lg cursor-not-allowed opacity-50">
-                        Plano Atual
+                      <button 
+                        className={`w-full px-3 py-2 text-white text-xs font-medium rounded-lg ${
+                          isPlanActive('free') 
+                            ? 'bg-gray-600 cursor-not-allowed opacity-50' 
+                            : 'bg-gray-600 cursor-not-allowed opacity-50'
+                        }`}
+                        disabled
+                      >
+                        {isPlanActive('free') ? 'Seu plano' : 'Plano Atual'}
                       </button>
                     </div>
                   </div>
@@ -1514,10 +1564,18 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                     </ul>
                     <div className="mt-4">
                       <button 
-                        onClick={() => window.location.href = '/pagamentos'}
-                        className="w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors duration-200 cursor-pointer"
+                        onClick={isPlanActive('basic') ? undefined : () => window.location.href = '/pagamentos'}
+                        className={`w-full px-3 py-2 text-white text-xs font-medium rounded-lg transition-colors duration-200 ${
+                          isPlanActive('basic') 
+                            ? 'bg-gray-600 cursor-not-allowed opacity-50' 
+                            : 'bg-blue-500 hover:bg-blue-600 cursor-pointer'
+                        }`}
+                        disabled={isPlanActive('basic')}
                       >
-                        {isAnnualPricing ? 'Assinar plano' : 'Assinar'}
+                        {isPlanActive('basic') 
+                          ? `Seu plano • ${sub?.cycle === 'annual' ? 'Anual' : 'Mensal'}` 
+                          : (isAnnualPricing ? 'Assinar plano' : 'Assinar')
+                        }
                       </button>
                     </div>
                   </div>
@@ -1600,10 +1658,18 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                     </ul>
                     <div className="mt-4">
                       <button 
-                        onClick={() => window.location.href = '/pagamentos'}
-                        className="w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors duration-200 cursor-pointer"
+                        onClick={isPlanActive('premium') ? undefined : () => window.location.href = '/pagamentos'}
+                        className={`w-full px-3 py-2 text-white text-xs font-medium rounded-lg transition-colors duration-200 ${
+                          isPlanActive('premium') 
+                            ? 'bg-gray-600 cursor-not-allowed opacity-50' 
+                            : 'bg-blue-500 hover:bg-blue-600 cursor-pointer'
+                        }`}
+                        disabled={isPlanActive('premium')}
                       >
-                        {isAnnualPricing ? 'Assinar plano' : 'Assinar'}
+                        {isPlanActive('premium') 
+                          ? `Seu plano • ${sub?.cycle === 'annual' ? 'Anual' : 'Mensal'}` 
+                          : (isAnnualPricing ? 'Assinar plano' : 'Assinar')
+                        }
                       </button>
                     </div>
                   </div>
